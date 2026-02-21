@@ -23,14 +23,14 @@
 
 -------------------------
 
-+ **后端：**SpringBoot 2.7.12 + Fastapi
-+ **数据库：**MySQL、Timescale(后期升级引入)
-+ **缓存：**Redis
-+ **前端：**Vue3、Vite、ElementUI
-+ **搜索：**Elasticsearch
-+ **消息队列：**RocketMQ(后期升级引入)
-+ **表格处理：**EasyExcel
-+ **预测模型：**Pytorch
++ **后端**：SpringBoot 2.7.12 + Fastapi
++ **数据库**：MySQL、Timescale(后期升级引入)
++ **缓存**：Redis
++ **前端**：Vue3、Vite、ElementUI
++ **搜索**：Elasticsearch
++ **消息队列**：RocketMQ(后期升级引入)
++ **表格处理**：EasyExcel
++ **预测模型**：Pytorch
 
 
 
