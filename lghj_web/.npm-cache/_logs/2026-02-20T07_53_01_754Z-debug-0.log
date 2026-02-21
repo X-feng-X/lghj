@@ -1,0 +1,192 @@
+0 verbose cli D:\nodejs\22.14.0\node.exe D:\nodejs\22.14.0\node_global\node_modules\npm\bin\npm-cli.js
+1 info using npm@11.4.2
+2 info using node@v22.14.0
+3 silly config load:file:D:\nodejs\22.14.0\node_global\node_modules\npm\npmrc
+4 silly config load:file:E:\前端项目\lghj_web\.npmrc
+5 silly config load:file:C:\Users\xjf\.npmrc
+6 silly config load:file:D:\nodejs\22.14.0\node_global\etc\npmrc
+7 verbose title npm install @element-plus/icons-vue
+8 verbose argv "install" "@element-plus/icons-vue" "--cache" "./.npm-cache"
+9 verbose logfile logs-max:10 dir:E:\前端项目\lghj_web\.npm-cache\_logs\2026-02-20T07_53_01_754Z-
+10 verbose logfile E:\前端项目\lghj_web\.npm-cache\_logs\2026-02-20T07_53_01_754Z-debug-0.log
+11 silly logfile done cleaning log files
+12 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+13 silly idealTree buildDeps
+14 silly fetch manifest @element-plus/icons-vue@*
+15 silly packumentCache full:https://registry.npmmirror.com/@element-plus%2ficons-vue cache-miss
+16 http cache https://registry.npmmirror.com/@element-plus%2ficons-vue 65ms (cache hit)
+17 silly packumentCache full:https://registry.npmmirror.com/@element-plus%2ficons-vue set size:124486 disposed:false
+18 silly fetch manifest vue@^3.3.0
+19 silly packumentCache full:https://registry.npmmirror.com/vue cache-miss
+20 http cache https://registry.npmmirror.com/vue 16ms (cache hit)
+21 silly packumentCache full:https://registry.npmmirror.com/vue set size:2071551 disposed:false
+22 silly fetch manifest typescript@*
+23 silly packumentCache full:https://registry.npmmirror.com/typescript cache-miss
+24 http cache https://registry.npmmirror.com/typescript 48ms (cache hit)
+25 silly packumentCache full:https://registry.npmmirror.com/typescript set size:14513176 disposed:false
+26 silly placeDep ROOT @element-plus/icons-vue@2.3.2 REPLACE for: lghj-web@0.0.0 want: *
+27 silly reify moves {}
+28 silly audit bulk request {
+28 silly audit   '@babel/helper-string-parser': [ '7.27.1' ],
+28 silly audit   '@babel/helper-validator-identifier': [ '7.28.5' ],
+28 silly audit   '@babel/parser': [ '7.29.0' ],
+28 silly audit   '@babel/types': [ '7.29.0' ],
+28 silly audit   '@ctrl/tinycolor': [ '3.6.1' ],
+28 silly audit   '@esbuild/android-arm': [ '0.18.20' ],
+28 silly audit   '@esbuild/android-arm64': [ '0.18.20' ],
+28 silly audit   '@esbuild/android-x64': [ '0.18.20' ],
+28 silly audit   '@esbuild/darwin-arm64': [ '0.18.20' ],
+28 silly audit   '@esbuild/darwin-x64': [ '0.18.20' ],
+28 silly audit   '@esbuild/freebsd-arm64': [ '0.18.20' ],
+28 silly audit   '@esbuild/freebsd-x64': [ '0.18.20' ],
+28 silly audit   '@esbuild/linux-arm': [ '0.18.20' ],
+28 silly audit   '@esbuild/linux-arm64': [ '0.18.20' ],
+28 silly audit   '@esbuild/linux-ia32': [ '0.18.20' ],
+28 silly audit   '@esbuild/linux-loong64': [ '0.18.20' ],
+28 silly audit   '@esbuild/linux-mips64el': [ '0.18.20' ],
+28 silly audit   '@esbuild/linux-ppc64': [ '0.18.20' ],
+28 silly audit   '@esbuild/linux-riscv64': [ '0.18.20' ],
+28 silly audit   '@esbuild/linux-s390x': [ '0.18.20' ],
+28 silly audit   '@esbuild/linux-x64': [ '0.18.20' ],
+28 silly audit   '@esbuild/netbsd-x64': [ '0.18.20' ],
+28 silly audit   '@esbuild/openbsd-x64': [ '0.18.20' ],
+28 silly audit   '@esbuild/sunos-x64': [ '0.18.20' ],
+28 silly audit   '@esbuild/win32-arm64': [ '0.18.20' ],
+28 silly audit   '@esbuild/win32-ia32': [ '0.18.20' ],
+28 silly audit   '@esbuild/win32-x64': [ '0.18.20' ],
+28 silly audit   '@floating-ui/core': [ '1.7.4' ],
+28 silly audit   '@floating-ui/dom': [ '1.7.5' ],
+28 silly audit   '@floating-ui/utils': [ '0.2.10' ],
+28 silly audit   '@jridgewell/sourcemap-codec': [ '1.5.5' ],
+28 silly audit   '@parcel/watcher': [ '2.5.6' ],
+28 silly audit   '@parcel/watcher-android-arm64': [ '2.5.6' ],
+28 silly audit   '@parcel/watcher-darwin-arm64': [ '2.5.6' ],
+28 silly audit   '@parcel/watcher-darwin-x64': [ '2.5.6' ],
+28 silly audit   '@parcel/watcher-freebsd-x64': [ '2.5.6' ],
+28 silly audit   '@parcel/watcher-linux-arm-glibc': [ '2.5.6' ],
+28 silly audit   '@parcel/watcher-linux-arm-musl': [ '2.5.6' ],
+28 silly audit   '@parcel/watcher-linux-arm64-glibc': [ '2.5.6' ],
+28 silly audit   '@parcel/watcher-linux-arm64-musl': [ '2.5.6' ],
+28 silly audit   '@parcel/watcher-linux-x64-glibc': [ '2.5.6' ],
+28 silly audit   '@parcel/watcher-linux-x64-musl': [ '2.5.6' ],
+28 silly audit   '@parcel/watcher-win32-arm64': [ '2.5.6' ],
+28 silly audit   '@parcel/watcher-win32-ia32': [ '2.5.6' ],
+28 silly audit   '@parcel/watcher-win32-x64': [ '2.5.6' ],
+28 silly audit   '@sxzz/popperjs-es': [ '2.11.8' ],
+28 silly audit   '@types/lodash': [ '4.17.23' ],
+28 silly audit   '@types/lodash-es': [ '4.17.12' ],
+28 silly audit   '@types/web-bluetooth': [ '0.0.20' ],
+28 silly audit   '@vitejs/plugin-vue': [ '4.6.2' ],
+28 silly audit   '@vue/compiler-core': [ '3.5.28' ],
+28 silly audit   '@vue/compiler-dom': [ '3.5.28' ],
+28 silly audit   '@vue/compiler-sfc': [ '3.5.28' ],
+28 silly audit   '@vue/compiler-ssr': [ '3.5.28' ],
+28 silly audit   '@vue/devtools-api': [ '6.6.4' ],
+28 silly audit   '@vue/reactivity': [ '3.5.28' ],
+28 silly audit   '@vue/runtime-core': [ '3.5.28' ],
+28 silly audit   '@vue/runtime-dom': [ '3.5.28' ],
+28 silly audit   '@vue/server-renderer': [ '3.5.28' ],
+28 silly audit   '@vue/shared': [ '3.5.28' ],
+28 silly audit   '@vueuse/core': [ '10.11.1' ],
+28 silly audit   '@vueuse/metadata': [ '10.11.1' ],
+28 silly audit   '@vueuse/shared': [ '10.11.1' ],
+28 silly audit   'async-validator': [ '4.2.5' ],
+28 silly audit   asynckit: [ '0.4.0' ],
+28 silly audit   axios: [ '1.13.5' ],
+28 silly audit   'call-bind-apply-helpers': [ '1.0.2' ],
+28 silly audit   chokidar: [ '4.0.3' ],
+28 silly audit   'combined-stream': [ '1.0.8' ],
+28 silly audit   csstype: [ '3.2.3' ],
+28 silly audit   dayjs: [ '1.11.19' ],
+28 silly audit   'delayed-stream': [ '1.0.0' ],
+28 silly audit   'detect-libc': [ '2.1.2' ],
+28 silly audit   'dunder-proto': [ '1.0.1' ],
+28 silly audit   echarts: [ '5.6.0' ],
+28 silly audit   'element-plus': [ '2.13.2' ],
+28 silly audit   entities: [ '7.0.1' ],
+28 silly audit   'es-define-property': [ '1.0.1' ],
+28 silly audit   'es-errors': [ '1.3.0' ],
+28 silly audit   'es-object-atoms': [ '1.1.1' ],
+28 silly audit   'es-set-tostringtag': [ '2.1.0' ],
+28 silly audit   esbuild: [ '0.18.20' ],
+28 silly audit   'estree-walker': [ '2.0.2' ],
+28 silly audit   'follow-redirects': [ '1.15.11' ],
+28 silly audit   'form-data': [ '4.0.5' ],
+28 silly audit   fsevents: [ '2.3.3' ],
+28 silly audit   'function-bind': [ '1.1.2' ],
+28 silly audit   'get-intrinsic': [ '1.3.0' ],
+28 silly audit   'get-proto': [ '1.0.1' ],
+28 silly audit   gopd: [ '1.2.0' ],
+28 silly audit   'has-symbols': [ '1.1.0' ],
+28 silly audit   'has-tostringtag': [ '1.0.2' ],
+28 silly audit   hasown: [ '2.0.2' ],
+28 silly audit   immutable: [ '5.1.4' ],
+28 silly audit   'is-extglob': [ '2.1.1' ],
+28 silly audit   'is-glob': [ '4.0.3' ],
+28 silly audit   lodash: [ '4.17.23' ],
+28 silly audit   'lodash-es': [ '4.17.23' ],
+28 silly audit   'lodash-unified': [ '1.0.3' ],
+28 silly audit   'magic-string': [ '0.30.21' ],
+28 silly audit   'math-intrinsics': [ '1.1.0' ],
+28 silly audit   'memoize-one': [ '6.0.0' ],
+28 silly audit   'mime-db': [ '1.52.0' ],
+28 silly audit   'mime-types': [ '2.1.35' ],
+28 silly audit   nanoid: [ '3.3.11' ],
+28 silly audit   'node-addon-api': [ '7.1.1' ],
+28 silly audit   'normalize-wheel-es': [ '1.2.0' ],
+28 silly audit   picocolors: [ '1.1.1' ],
+28 silly audit   picomatch: [ '4.0.3' ],
+28 silly audit   pinia: [ '2.3.1' ],
+28 silly audit   postcss: [ '8.5.6' ],
+28 silly audit   'proxy-from-env': [ '1.1.0' ],
+28 silly audit   readdirp: [ '4.1.2' ],
+28 silly audit   rollup: [ '3.29.5' ],
+28 silly audit   sass: [ '1.97.3' ],
+28 silly audit   'source-map-js': [ '1.2.1' ],
+28 silly audit   tslib: [ '2.3.0' ],
+28 silly audit   vite: [ '4.5.14' ],
+28 silly audit   vue: [ '3.5.28' ],
+28 silly audit   'vue-demi': [ '0.14.10' ],
+28 silly audit   'vue-router': [ '4.6.4' ],
+28 silly audit   zrender: [ '5.6.1' ],
+28 silly audit   '@element-plus/icons-vue': [ '2.3.2' ]
+28 silly audit }
+29 http fetch POST 404 https://registry.npmmirror.com/-/npm/v1/security/advisories/bulk 365ms
+30 verbose audit error HttpErrorGeneral: 404 Not Found - POST https://registry.npmmirror.com/-/npm/v1/security/advisories/bulk - [NOT_IMPLEMENTED] /-/npm/v1/security/* not implemented yet
+30 verbose audit error     at D:\nodejs\22.14.0\node_global\node_modules\npm\node_modules\npm-registry-fetch\lib\check-response.js:103:15
+30 verbose audit error     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+30 verbose audit error     at async [getReport] (D:\nodejs\22.14.0\node_global\node_modules\npm\node_modules\@npmcli\arborist\lib\audit-report.js:294:19)
+30 verbose audit error     at async AuditReport.run (D:\nodejs\22.14.0\node_global\node_modules\npm\node_modules\@npmcli\arborist\lib\audit-report.js:106:19)
+30 verbose audit error     at async Arborist.reify (D:\nodejs\22.14.0\node_global\node_modules\npm\node_modules\@npmcli\arborist\lib\arborist\reify.js:280:24)
+30 verbose audit error     at async Install.exec (D:\nodejs\22.14.0\node_global\node_modules\npm\lib\commands\install.js:149:5)
+30 verbose audit error     at async Npm.exec (D:\nodejs\22.14.0\node_global\node_modules\npm\lib\npm.js:208:9)
+30 verbose audit error     at async module.exports (D:\nodejs\22.14.0\node_global\node_modules\npm\lib\cli\entry.js:67:5) {
+30 verbose audit error   headers: [Object: null prototype] {
+30 verbose audit error     server: [ 'Tengine' ],
+30 verbose audit error     date: [ 'Fri, 20 Feb 2026 07:53:05 GMT' ],
+30 verbose audit error     'content-type': [ 'application/json' ],
+30 verbose audit error     'transfer-encoding': [ 'chunked' ],
+30 verbose audit error     connection: [ 'keep-alive' ],
+30 verbose audit error     'strict-transport-security': [ 'max-age=5184000' ],
+30 verbose audit error     via: [ 'kunlun20.cn9153[,404666]' ],
+30 verbose audit error     'timing-allow-origin': [ '*' ],
+30 verbose audit error     eagleid: [ 'ded95e2817715739851762968e' ],
+30 verbose audit error     'x-fetch-attempts': [ '1' ]
+30 verbose audit error   },
+30 verbose audit error   statusCode: 404,
+30 verbose audit error   code: 'E404',
+30 verbose audit error   method: 'POST',
+30 verbose audit error   uri: 'https://registry.npmmirror.com/-/npm/v1/security/advisories/bulk',
+30 verbose audit error   body: {
+30 verbose audit error     error: '[NOT_IMPLEMENTED] /-/npm/v1/security/* not implemented yet'
+30 verbose audit error   },
+30 verbose audit error   pkgid: undefined
+30 verbose audit error }
+31 silly audit error [object Object]
+32 silly audit report null
+33 verbose cwd E:\前端项目\lghj_web
+34 verbose os Windows_NT 10.0.26200
+35 verbose node v22.14.0
+36 verbose npm  v11.4.2
+37 verbose exit 0
+38 info ok
