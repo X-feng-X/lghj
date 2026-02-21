@@ -10,7 +10,6 @@ __pycache__/
 
 # 编辑器/IDE
 .vscode/
-.idea/
 *.swp
 
 # 编译输出目录
