@@ -1,0 +1,43 @@
+# Python 虚拟环境
+.venv/
+venv/
+ENV/
+env/
+
+# Python 缓存文件
+__pycache__/
+*.pyc
+
+# 编辑器/IDE
+.vscode/
+.idea/
+*.swp
+
+# 编译输出目录
+target/
+*.class
+
+# IDE 相关文件
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+.vscode/
+
+# 日志文件
+logs/
+*.log
+
+# 打包文件（如果不想上传 JAR 包）
+*.jar
+*.war
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 应用配置文件（如果包含敏感信息，建议不提交）
+application-dev.yml
+# application-prod.yml
+# 但一般 application.yml 可以提交模板，实际敏感配置用环境变量覆盖
