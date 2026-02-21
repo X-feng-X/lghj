@@ -1,0 +1,43 @@
+version: '3.8'
+services:
+  # RocketMQ NameServer
+  namesrv:
+    image: apache/rocketmq:4.9.4
+    container_name: rmqnamesrv
+    ports:
+      - 9876:9876
+    command: sh mqnamesrv
+    environment:
+      - JAVA_OPT_EXT=-server -Xms128m -Xmx128m -Xmn128m
+
+  # RocketMQ Broker
+  broker:
+    image: apache/rocketmq:4.9.4
+    container_name: rmqbroker
+    ports:
+      - 10911:10911
+      - 10909:10909
+    command: sh mqbroker -n namesrv:9876 -c /opt/rocketmq/conf/broker.conf
+    depends_on:
+      - namesrv
+    environment:
+      - JAVA_OPT_EXT=-server -Xms128m -Xmx128m -Xmn128m
+      - NAMESRV_ADDR=namesrv:9876
+    volumes:
+      - ./rmq/broker.conf:/opt/rocketmq/conf/broker.conf
+
+  # TimescaleDB (PostgreSQL with time-series extension)
+  timescaledb:
+    image: timescale/timescaledb:latest-pg14
+    container_name: timescaledb
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_PASSWORD=205219
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=lghj
+    volumes:
+      - timescaledb_data:/var/lib/postgresql/data
+
+volumes:
+  timescaledb_data:

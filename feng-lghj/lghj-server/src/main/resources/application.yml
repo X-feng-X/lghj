@@ -1,0 +1,130 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: lghj-service # 为Spring Boot项目指定一个应用名称
+  profiles:
+    active: dev # 激活开发环境专属配置，实现多环境隔离。
+  # 多数据源配置
+  datasource:
+    dynamic:
+      # 主数据源（MySQL）
+      primary: master
+      # 严格模式：未匹配到数据源时抛异常（建议开启）
+      strict: true
+      druid:
+        # 连接池通用配置（复用原有）
+        initial-size: 5
+        max-active: 20
+        min-idle: 5
+        max-wait: 60000
+      # 数据源列表
+      datasource:
+        # 原有MySQL数据源（master）
+        master:
+          url: jdbc:mysql://${lghj.db.host}:${lghj.db.port}/${lghj.db.database}?useUnicode=true&characterEncoding=UTF-8&autoReconnect=true&serverTimezone=Asia/Shanghai&rewriteBatchedStatements=true
+          driver-class-name: ${lghj.db.driver-class-name}
+          username: ${lghj.db.username}
+          password: ${lghj.db.password}
+        # 新增TimescaleDB数据源（timescale）
+        timescale:
+          url: jdbc:postgresql://${lghj.timescale.host}:${lghj.timescale.port}/${lghj.timescale.database}?currentSchema=public&useUnicode=true&characterEncoding=utf8
+          driver-class-name: org.postgresql.Driver
+          username: ${lghj.timescale.username} # 如postgres
+          password: ${lghj.timescale.password} # 你的TimescaleDB密码
+          type: com.alibaba.druid.pool.DruidDataSource
+  # 定时任务配置
+  task:
+    scheduling:
+      pool:
+        size: 5 # 定时任务线程池大小
+
+  # redis设置
+  redis:
+    host: ${lghj.redis.host}
+    port: ${lghj.redis.port}
+    database: ${lghj.redis.database}
+
+  # Elasticsearch 配置
+  elasticsearch:
+    uris: ${lghj.elasticsearch.uris:http://localhost:9200}
+    # 设置连接超时时间为 5 秒
+    connection-timeout: 5s
+    # 设置读取数据超时时间为 30 秒
+    socket-timeout: 30s
+
+
+# RocketMQ核心配置
+rocketmq:
+  # NameServer地址（单机：ip:9876；集群：ip1:9876;ip2:9876）
+  name-server: ${lghj.rocketmq.name-server:127.0.0.1:9876}
+  # 生产者配置
+  producer:
+    # 生产者组（必须唯一，标识生产端集群）
+    group: lghj-kline-producer-group
+    # 消息发送超时时间
+    send-message-timeout: 3000
+    # 压缩消息阈值（超过4k自动压缩）
+    compress-message-body-threshold: 4096
+    # 重试次数
+    retry-times-when-send-failed: 2
+    # 异步发送重试次数
+    retry-times-when-send-async-failed: 2
+  # 消费者配置（全局）
+  consumer:
+    # 消费者组（必须唯一）
+    group: lghj-kline-consumer-group
+    # 消费线程数
+    consume-thread-max: 20
+    consume-thread-min: 5
+    # 批量消费阈值（一次拉取多少条消息）
+    consume-message-batch-max-size: 10
+
+
+mybatis-plus:
+  configuration:
+    default-enum-type-handler: com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler
+    # 开启驼峰命名转换
+    map-underscore-to-camel-case: true
+    # 开启日志（开发环境用，生产环境关闭）
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      update-strategy: not_null
+      id-type: auto
+      logic-delete-field: isDeleted # 逻辑删除字段名
+      logic-delete-value: 1 # 已删除值
+      logic-not-delete-value: 0 # 未删除值
+
+knife4j:
+  enable: true
+  openapi:
+    title: 量股化金接口文档
+    description: "量股化金接口文档"
+    email: feng@feng.cn
+    concat: Feng
+    url: https://www.itfeng.cn
+    version: v1.0.0
+
+    group:
+      default:
+        group-name: default
+        api-rule: package
+        api-rule-resources:
+          - com.lghj.controller
+
+lghj:
+  jwt:
+    # 设置jwt签名加密时使用的秘钥
+    admin-secret-key: ${lghj.jwt.admin-secret-key}
+    # 设置jwt过期时间
+    admin-ttl: ${lghj.jwt.admin-ttl}
+    # 设置前端传递过来的令牌名称
+    admin-token-name: token
+    # 设置jwt签名加密时使用的秘钥
+    user-secret-key: ${lghj.jwt.user-secret-key}
+    # 设置jwt过期时间
+    user-ttl: ${lghj.jwt.user-ttl}
+    # 设置前端传递过来的令牌名称
+    user-token-name: token

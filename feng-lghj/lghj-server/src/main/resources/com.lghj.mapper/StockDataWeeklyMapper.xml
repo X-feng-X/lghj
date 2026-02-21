@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.lghj.mapper.StockDataWeeklyMapper">
+
+    <insert id="upsertBatch" parameterType="java.util.List">
+        INSERT INTO stock_kline_yearly (code, trade_date, open, close, high, low, volume, amount)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.code}, #{item.tradeDate}, #{item.open}, #{item.close}, #{item.high}, #{item.low}, #{item.volume},
+            #{item.amount})
+        </foreach>
+        ON CONFLICT (code, trade_date)
+        DO UPDATE SET
+        open = EXCLUDED.open,
+        close = EXCLUDED.close,
+        high = EXCLUDED.high,
+        low = EXCLUDED.low,
+        volume = EXCLUDED.volume,
+        amount = EXCLUDED.amount
+    </insert>
+
+</mapper>
