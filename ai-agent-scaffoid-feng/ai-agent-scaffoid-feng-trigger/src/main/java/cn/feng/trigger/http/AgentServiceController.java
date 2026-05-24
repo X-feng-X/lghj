@@ -74,28 +74,17 @@ public class AgentServiceController implements IAgentService {
     }
 
     @GetMapping("create_session")
-    public Response<CreateSessionResponseDTO> createSessionByGet(@RequestBody(required = false) CreateSessionRequestDTO requestDTO,
-                                                                 @RequestParam(required = false) String agentId,
-                                                                 @RequestParam(required = false) String userId) {
-        return doCreateSession(mergeCreateSessionRequest(requestDTO, agentId, userId));
+    public Response<CreateSessionResponseDTO> createSessionByGet(@RequestParam String agentId,
+                                                                 @RequestParam String userId) {
+        CreateSessionRequestDTO requestDTO = new CreateSessionRequestDTO();
+        requestDTO.setAgentId(agentId);
+        requestDTO.setUserId(userId);
+        return doCreateSession(requestDTO);
     }
 
     @PostMapping("create_session")
     public Response<CreateSessionResponseDTO> createSessionByPost(@RequestBody CreateSessionRequestDTO requestDTO) {
         return doCreateSession(requestDTO);
-    }
-
-    private CreateSessionRequestDTO mergeCreateSessionRequest(CreateSessionRequestDTO requestDTO, String agentId, String userId) {
-        if (requestDTO == null) {
-            requestDTO = new CreateSessionRequestDTO();
-        }
-        if (requestDTO.getAgentId() == null || requestDTO.getAgentId().isEmpty()) {
-            requestDTO.setAgentId(agentId);
-        }
-        if (requestDTO.getUserId() == null || requestDTO.getUserId().isEmpty()) {
-            requestDTO.setUserId(userId);
-        }
-        return requestDTO;
     }
 
     private Response<CreateSessionResponseDTO> doCreateSession(CreateSessionRequestDTO requestDTO) {
