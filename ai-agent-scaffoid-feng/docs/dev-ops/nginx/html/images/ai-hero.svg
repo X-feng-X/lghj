@@ -1,0 +1,95 @@
+<svg width="1200" height="680" viewBox="0 0 1200 680" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="g0" x1="170" y1="60" x2="1020" y2="620" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#62F6C7" stop-opacity="0.92" />
+      <stop offset="0.45" stop-color="#5AA9FF" stop-opacity="0.86" />
+      <stop offset="1" stop-color="#FF5A7A" stop-opacity="0.7" />
+    </linearGradient>
+    <radialGradient id="g1" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(260 160) rotate(38) scale(420 320)">
+      <stop stop-color="#FFFFFF" stop-opacity="0.22" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="g2" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(980 160) rotate(142) scale(520 360)">
+      <stop stop-color="#FFFFFF" stop-opacity="0.18" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <filter id="blur" x="-40" y="-40" width="1280" height="760" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="18" />
+    </filter>
+    <filter id="shadow" x="-40" y="-40" width="1280" height="760" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="16" stdDeviation="18" flood-color="#000000" flood-opacity="0.45" />
+    </filter>
+  </defs>
+
+  <rect x="0" y="0" width="1200" height="680" rx="24" fill="#0B1022" />
+  <path d="M115 182C240 70 406 26 560 38C698 48 820 106 910 176C1028 268 1108 404 1096 520C1087 604 1024 653 942 664C834 679 714 624 592 606C456 585 298 610 188 552C72 491 20 308 115 182Z" fill="url(#g0)" opacity="0.42" filter="url(#blur)" />
+  <path d="M110 120H1120V620H110C86 620 68 602 68 578V162C68 138 86 120 110 120Z" fill="url(#g1)" opacity="0.8" />
+  <path d="M110 120H1120V620H110C86 620 68 602 68 578V162C68 138 86 120 110 120Z" fill="url(#g2)" opacity="0.7" />
+
+  <g filter="url(#shadow)">
+    <rect x="110" y="170" width="980" height="420" rx="20" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.14)" />
+    <rect x="110" y="170" width="980" height="56" rx="20" fill="rgba(255,255,255,0.06)" />
+    <circle cx="146" cy="198" r="7" fill="rgba(255,90,122,0.9)" />
+    <circle cx="170" cy="198" r="7" fill="rgba(255,209,102,0.9)" />
+    <circle cx="194" cy="198" r="7" fill="rgba(98,246,199,0.9)" />
+    <text x="230" y="204" fill="rgba(255,255,255,0.72)" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial" font-size="14">
+      Agent Console · demo
+    </text>
+  </g>
+
+  <g>
+    <rect x="152" y="252" width="310" height="306" rx="16" fill="rgba(0,0,0,0.22)" stroke="rgba(255,255,255,0.12)" />
+    <text x="176" y="286" fill="rgba(255,255,255,0.86)" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial" font-size="14" font-weight="700">
+      工具面板
+    </text>
+    <g fill="rgba(255,255,255,0.72)" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial" font-size="12">
+      <text x="176" y="322">• HTTP</text>
+      <text x="176" y="350">• Shell</text>
+      <text x="176" y="378">• Files</text>
+      <text x="176" y="406">• Vector</text>
+      <text x="176" y="434">• Memory</text>
+    </g>
+    <rect x="176" y="464" width="252" height="18" rx="9" fill="rgba(98,246,199,0.18)" />
+    <rect x="176" y="492" width="208" height="18" rx="9" fill="rgba(90,169,255,0.18)" />
+    <rect x="176" y="520" width="228" height="18" rx="9" fill="rgba(255,90,122,0.16)" />
+  </g>
+
+  <g>
+    <rect x="492" y="252" width="556" height="306" rx="16" fill="rgba(0,0,0,0.18)" stroke="rgba(255,255,255,0.12)" />
+    <text x="516" y="286" fill="rgba(255,255,255,0.86)" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial" font-size="14" font-weight="700">
+      对话区
+    </text>
+
+    <g>
+      <rect x="516" y="314" width="430" height="54" rx="14" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.10)" />
+      <text x="536" y="343" fill="rgba(255,255,255,0.78)" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial" font-size="12">
+        用户：帮我生成一个 Nginx 登录页，支持保存 cookie。
+      </text>
+    </g>
+
+    <g>
+      <rect x="590" y="382" width="430" height="86" rx="14" fill="rgba(98,246,199,0.10)" stroke="rgba(98,246,199,0.24)" />
+      <text x="610" y="411" fill="rgba(255,255,255,0.88)" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial" font-size="12">
+        智能体：已生成左右布局登录页，默认 admin/admin。
+      </text>
+      <text x="610" y="435" fill="rgba(255,255,255,0.74)" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial" font-size="12">
+        登录后写入 ai_agent_login cookie（SameSite=Lax，Path=/）。
+      </text>
+      <text x="610" y="459" fill="rgba(255,255,255,0.74)" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial" font-size="12">
+        支持自动回显登录态与退出清除。
+      </text>
+    </g>
+
+    <g>
+      <rect x="516" y="490" width="532" height="44" rx="14" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.10)" />
+      <text x="536" y="518" fill="rgba(255,255,255,0.66)" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial" font-size="12">
+        输入框：输入 “admin” / “admin”，点击登录…
+      </text>
+    </g>
+  </g>
+
+  <g>
+    <path d="M1000 92C1028 76 1060 78 1084 98C1110 120 1110 162 1084 184C1058 206 1016 204 994 176C974 150 976 110 1000 92Z" fill="rgba(98,246,199,0.20)" />
+    <path d="M124 612C162 594 208 600 234 628C260 656 252 700 214 716C176 734 126 720 110 682C96 650 100 626 124 612Z" fill="rgba(90,169,255,0.18)" />
+  </g>
+</svg>

@@ -44,6 +44,9 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
     public void saveBlog(Blog blog) {
         // 获取登录用户
         Long userId = BaseContext.getCurrentId();
+        if (userId == null) {
+            throw new BusinessException(ErrorEnum.NO_LOGIN);
+        }
         blog.setUserId(userId);
         // 保存探店博文到数据库
         boolean isSuccess = save(blog);
@@ -58,7 +61,9 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
             Long followUserId = follow.getUserId();
             // 推送
             String key = RedisConstant.FEED_KEY + followUserId;
-            stringRedisTemplate.opsForZSet().add(key, blog.getId().toString(), System.currentTimeMillis());
+            if (blog.getId() != null) {
+                stringRedisTemplate.opsForZSet().add(key, blog.getId().toString(), System.currentTimeMillis());
+            }
         }
     }
 
@@ -181,10 +186,6 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
         // 3.2 查询指定索引区间的博客 ID（reverseRange：按分值降序查询，返回成员列表）
         Set<String> blogIdStrSet = stringRedisTemplate.opsForZSet()
                 .reverseRange(key, startIndex, endIndex); // 逆序获取对应下标的元素（因为要获取最新发布的博客）
-
-        if (blogIdStrSet == null) {
-            throw new BusinessException(ErrorEnum.NO_FOLLOW_OTHERS, "暂未关注任何用户");
-        }
 
         // 3.3 查询 Redis ZSet 总记录数（用于计算总页数，PC 端分页必备）
         Long total = stringRedisTemplate.opsForZSet().zCard(key);

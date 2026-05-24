@@ -6,7 +6,7 @@ spring:
     url: jdbc:mysql://${LGHJ_MYSQL_HOST:127.0.0.1}:${LGHJ_MYSQL_PORT:3306}/${LGHJ_MYSQL_DATABASE:lghj}?useUnicode=true&characterEncoding=UTF-8&autoReconnect=true&serverTimezone=Asia/Shanghai&rewriteBatchedStatements=true
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: ${LGHJ_MYSQL_USERNAME:root}
-    password: ${LGHJ_MYSQL_PASSWORD:123456}
+    password: ${LGHJ_MYSQL_PASSWORD:205219}
     druid:
       initial-size: 5
       max-active: 20
@@ -24,7 +24,9 @@ spring:
     database: ${LGHJ_REDIS_DATABASE:8}
 
   elasticsearch:
-    uris: ${LGHJ_ES_URIS:http://127.0.0.1:9200}
+    uris: ${LGHJ_ES_URIS:192.168.88.130:9200}
+#    connection-timeout: 5000
+#    socket-timeout: 30000
 
   mvc:
     pathmatch:

@@ -7,7 +7,7 @@ import lombok.Data;
  * 统一返回结果类（对接错误枚举）
  */
 @Data
-public class Result {
+public class Result<T> {
     // 响应状态码（200=成功，其他=失败）
     private Integer code;
     // 响应提示信息

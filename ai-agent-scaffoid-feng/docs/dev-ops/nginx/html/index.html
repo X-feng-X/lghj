@@ -1,0 +1,876 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI 智能体 · 对话</title>
+    <style>
+      :root {
+        --bg0: #070a12;
+        --bg1: #0b1022;
+        --text: rgba(255, 255, 255, 0.92);
+        --muted: rgba(255, 255, 255, 0.66);
+        --muted2: rgba(255, 255, 255, 0.5);
+        --border: rgba(255, 255, 255, 0.12);
+        --card: rgba(255, 255, 255, 0.06);
+        --card2: rgba(255, 255, 255, 0.04);
+        --primary: #62f6c7;
+        --primary2: #5aa9ff;
+        --danger: #ff5a7a;
+        --shadow: 0 22px 60px rgba(0, 0, 0, 0.55);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100%;
+      }
+
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
+          Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+        color: var(--text);
+        background: radial-gradient(1200px 700px at 20% 12%, rgba(98, 246, 199, 0.18), rgba(98, 246, 199, 0) 55%),
+          radial-gradient(1000px 620px at 80% 14%, rgba(90, 169, 255, 0.16), rgba(90, 169, 255, 0) 55%),
+          radial-gradient(1000px 740px at 55% 82%, rgba(255, 90, 122, 0.1), rgba(255, 90, 122, 0) 55%),
+          linear-gradient(180deg, var(--bg0), var(--bg1));
+      }
+
+      .app {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+        background: rgba(11, 16, 34, 0.76);
+        backdrop-filter: blur(14px);
+      }
+
+      .topbar-inner {
+        width: min(1240px, 100%);
+        margin: 0 auto;
+        padding: 14px 18px;
+        display: flex;
+        gap: 14px;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 260px;
+      }
+
+      .brand-badge {
+        width: 40px;
+        height: 40px;
+        border-radius: 14px;
+        display: grid;
+        place-items: center;
+        background: radial-gradient(14px 14px at 30% 30%, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0)),
+          linear-gradient(135deg, rgba(98, 246, 199, 0.9), rgba(90, 169, 255, 0.9));
+        color: rgba(7, 10, 18, 0.92);
+        font-weight: 900;
+        letter-spacing: 0.5px;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+        flex: 0 0 auto;
+      }
+
+      .brand-title {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .brand-title strong {
+        font-size: 14px;
+        letter-spacing: 0.2px;
+      }
+
+      .brand-title span {
+        font-size: 12px;
+        color: var(--muted2);
+      }
+
+      .controls {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+      }
+
+      .select,
+      .pill {
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        background: rgba(0, 0, 0, 0.18);
+        color: var(--text);
+        border-radius: 12px;
+        padding: 10px 12px;
+        outline: none;
+        box-shadow: 0 0 0 0 rgba(98, 246, 199, 0);
+        transition: border-color 180ms ease, box-shadow 180ms ease;
+      }
+
+      .select:focus {
+        border-color: rgba(98, 246, 199, 0.55);
+        box-shadow: 0 0 0 4px rgba(98, 246, 199, 0.12);
+      }
+
+      .pill {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 12px;
+      }
+
+      .pill b {
+        font-size: 12px;
+      }
+
+      .pill span {
+        font-size: 12px;
+        color: var(--muted2);
+      }
+
+      .btn {
+        border: 0;
+        border-radius: 12px;
+        padding: 10px 12px;
+        font-weight: 700;
+        cursor: pointer;
+        color: rgba(7, 10, 18, 0.92);
+        background: linear-gradient(135deg, var(--primary), var(--primary2));
+        box-shadow: 0 14px 28px rgba(0, 0, 0, 0.28);
+        transition: transform 120ms ease, filter 120ms ease;
+      }
+
+      .btn:active {
+        transform: translateY(1px);
+        filter: brightness(0.98);
+      }
+
+      .btn-secondary {
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--text);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        box-shadow: none;
+        font-weight: 600;
+      }
+
+      .main {
+        flex: 1 1 auto;
+        overflow: hidden;
+        display: flex;
+        justify-content: center;
+        padding: 18px;
+      }
+
+      .shell {
+        width: min(1240px, 100%);
+        display: grid;
+        grid-template-columns: 360px 1fr;
+        gap: 14px;
+        height: 100%;
+        min-height: 0;
+      }
+
+      .panel {
+        border: 1px solid var(--border);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
+        border-radius: 18px;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+        position: relative;
+        min-height: 0;
+      }
+
+      .left {
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .left h2 {
+        margin: 0;
+        font-size: 14px;
+        letter-spacing: 0.2px;
+      }
+
+      .left p {
+        margin: 0;
+        font-size: 12px;
+        color: var(--muted);
+        line-height: 1.7;
+      }
+
+      .hero {
+        border-radius: 16px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.10);
+        background: rgba(0, 0, 0, 0.24);
+      }
+
+      .hero img {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+        display: block;
+      }
+
+      .meta {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+
+      .kv {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+        padding: 12px;
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.10);
+        background: rgba(0, 0, 0, 0.16);
+      }
+
+      .kv span {
+        font-size: 12px;
+        color: var(--muted2);
+      }
+
+      .kv b {
+        font-size: 12px;
+        color: var(--text);
+        font-weight: 700;
+        max-width: 70%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .right {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+      }
+
+      .chat {
+        flex: 1 1 auto;
+        padding: 18px;
+        overflow: auto;
+        min-height: 0;
+      }
+
+      .chat::-webkit-scrollbar {
+        width: 10px;
+      }
+
+      .chat::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.12);
+        border-radius: 999px;
+      }
+
+      .chat::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      .chat-tip {
+        margin: 0 0 14px 0;
+        color: rgba(255, 255, 255, 0.56);
+        font-size: 12px;
+        line-height: 1.6;
+      }
+
+      .msg-row {
+        display: flex;
+        margin: 10px 0;
+      }
+
+      .msg-row.user {
+        justify-content: flex-start;
+      }
+
+      .msg-row.agent {
+        justify-content: flex-end;
+      }
+
+      .bubble {
+        max-width: min(74%, 920px);
+        border-radius: 16px;
+        padding: 12px 12px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(0, 0, 0, 0.18);
+        line-height: 1.7;
+        font-size: 13px;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+
+      .bubble.user {
+        border-color: rgba(90, 169, 255, 0.22);
+        background: rgba(90, 169, 255, 0.10);
+      }
+
+      .bubble.agent {
+        border-color: rgba(98, 246, 199, 0.22);
+        background: rgba(98, 246, 199, 0.09);
+      }
+
+      .bubble .meta-line {
+        margin-top: 8px;
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.46);
+      }
+
+      .composer {
+        flex: 0 0 auto;
+        border-top: 1px solid rgba(255, 255, 255, 0.10);
+        padding: 14px;
+        display: flex;
+        gap: 10px;
+        align-items: flex-end;
+        background: rgba(0, 0, 0, 0.12);
+      }
+
+      .textarea {
+        flex: 1 1 auto;
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        background: rgba(0, 0, 0, 0.18);
+        padding: 12px 12px;
+        color: var(--text);
+        outline: none;
+        resize: none;
+        min-height: 46px;
+        max-height: 180px;
+        line-height: 1.6;
+        font-size: 13px;
+        transition: border-color 180ms ease, box-shadow 180ms ease;
+      }
+
+      .textarea:focus {
+        border-color: rgba(98, 246, 199, 0.55);
+        box-shadow: 0 0 0 4px rgba(98, 246, 199, 0.12);
+      }
+
+      .status {
+        min-height: 18px;
+        padding: 0 18px 10px 18px;
+        font-size: 12px;
+        color: var(--muted2);
+      }
+
+      .status.error {
+        color: var(--danger);
+      }
+
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 30;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 18px;
+        background: rgba(0, 0, 0, 0.55);
+        backdrop-filter: blur(10px);
+      }
+
+      .modal {
+        width: min(560px, 100%);
+        border-radius: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.05));
+        box-shadow: 0 26px 80px rgba(0, 0, 0, 0.65);
+        overflow: hidden;
+      }
+
+      .modal-header {
+        padding: 16px 16px 10px 16px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .modal-header h3 {
+        margin: 0;
+        font-size: 14px;
+        letter-spacing: 0.2px;
+      }
+
+      .modal-body {
+        padding: 14px 16px 16px 16px;
+      }
+
+      .modal-body p {
+        margin: 0 0 10px 0;
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.74);
+        line-height: 1.7;
+      }
+
+      .modal-body code {
+        display: block;
+        padding: 10px 12px;
+        border-radius: 14px;
+        background: rgba(0, 0, 0, 0.22);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        color: rgba(255, 255, 255, 0.86);
+        font-size: 12px;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+
+      .modal-actions {
+        padding: 0 16px 16px 16px;
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+        align-items: center;
+      }
+
+      @media (max-width: 980px) {
+        .shell {
+          grid-template-columns: 1fr;
+        }
+        .brand {
+          min-width: 0;
+        }
+        .left {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="topbar-inner">
+          <div class="brand">
+            <div class="brand-badge" aria-hidden="true">AI</div>
+            <div class="brand-title">
+              <strong>AI 智能体对话 By Ai Agent Scaffold - @小傅哥</strong>
+              <span id="apiHint">API: 未配置</span>
+            </div>
+          </div>
+          <div class="controls">
+            <select id="agentSelect" class="select" aria-label="选择智能体">
+              <option value="">加载中…</option>
+            </select>
+            <div class="pill" aria-label="用户信息">
+              <b id="userIdText">user</b>
+              <span id="loginMeta">已登录</span>
+            </div>
+            <button class="btn btn-secondary" id="logoutBtn" type="button">退出</button>
+          </div>
+        </div>
+      </header>
+
+      <section class="main">
+        <div class="shell">
+          <aside class="panel left" aria-label="信息面板">
+            <h2>当前会话</h2>
+            <p>用户消息在左侧气泡，智能体回复在右侧气泡。</p>
+
+            <div class="hero" aria-label="AI 效果图">
+              <img src="images/ai-hero.svg" alt="AI 智能体效果图" />
+            </div>
+
+            <div class="meta">
+              <div class="kv">
+                <span>用户 ID</span>
+                <b id="metaUserId">-</b>
+              </div>
+              <div class="kv">
+                <span>智能体</span>
+                <b id="metaAgent">-</b>
+              </div>
+              <div class="kv">
+                <span>最近会话</span>
+                <b id="metaSession">-</b>
+              </div>
+            </div>
+          </aside>
+
+          <main class="panel right" aria-label="对话区域">
+            <div class="chat" id="chat">
+              <p class="chat-tip" id="chatTip">
+                选择智能体后开始对话。每次发送会先创建 sessionId，再调用 chat 接口。
+              </p>
+            </div>
+
+            <div class="status" id="status" role="status" aria-live="polite"></div>
+
+            <form class="composer" id="composer">
+              <textarea
+                id="message"
+                class="textarea"
+                placeholder="请输入问题，回车发送（Shift+Enter 换行）"
+                autocomplete="off"
+              ></textarea>
+              <button class="btn" id="sendBtn" type="submit">发送</button>
+            </form>
+          </main>
+        </div>
+      </section>
+    </div>
+
+    <div class="modal-backdrop" id="backendModal" role="dialog" aria-modal="true" aria-labelledby="backendTitle">
+      <div class="modal">
+        <div class="modal-header">
+          <h3 id="backendTitle">服务端接口不可用</h3>
+          <button class="btn btn-secondary" type="button" id="backendCloseBtn">关闭</button>
+        </div>
+        <div class="modal-body">
+          <p id="backendDesc">
+            当前页面需要访问服务端接口。请先启动服务端（确认 API_BASE 可访问），然后点击“重试”。
+          </p>
+          <code id="backendCode"></code>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" type="button" id="backendRetryBtn">我已启动，重试</button>
+          <button class="btn" type="button" id="backendOkBtn">知道了</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script>
+      const COOKIE_NAME = "ai_agent_login";
+
+      function getCookie(name) {
+        const cookies = document.cookie ? document.cookie.split("; ") : [];
+        for (const item of cookies) {
+          const eqIndex = item.indexOf("=");
+          const k = eqIndex >= 0 ? item.slice(0, eqIndex) : item;
+          const v = eqIndex >= 0 ? item.slice(eqIndex + 1) : "";
+          if (k === name) return decodeURIComponent(v);
+        }
+        return null;
+      }
+
+      function deleteCookie(name) {
+        document.cookie = `${name}=; Max-Age=0; Path=/; SameSite=Lax`;
+      }
+
+      function safeParseJson(text) {
+        try {
+          return JSON.parse(text);
+        } catch {
+          return null;
+        }
+      }
+
+      function escapeHtml(text) {
+        return String(text)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#39;");
+      }
+
+      function formatTime(ts) {
+        const d = new Date(ts);
+        const p = (n) => String(n).padStart(2, "0");
+        return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+      }
+
+      const dom = {
+        agentSelect: document.getElementById("agentSelect"),
+        userIdText: document.getElementById("userIdText"),
+        loginMeta: document.getElementById("loginMeta"),
+        logoutBtn: document.getElementById("logoutBtn"),
+        chat: document.getElementById("chat"),
+        chatTip: document.getElementById("chatTip"),
+        status: document.getElementById("status"),
+        composer: document.getElementById("composer"),
+        message: document.getElementById("message"),
+        sendBtn: document.getElementById("sendBtn"),
+        apiHint: document.getElementById("apiHint"),
+        metaUserId: document.getElementById("metaUserId"),
+        metaAgent: document.getElementById("metaAgent"),
+        metaSession: document.getElementById("metaSession"),
+        backendModal: document.getElementById("backendModal"),
+        backendDesc: document.getElementById("backendDesc"),
+        backendCode: document.getElementById("backendCode"),
+        backendCloseBtn: document.getElementById("backendCloseBtn"),
+        backendRetryBtn: document.getElementById("backendRetryBtn"),
+        backendOkBtn: document.getElementById("backendOkBtn"),
+      };
+
+      const apiBase =
+        (window.APP_CONFIG && window.APP_CONFIG.API_BASE) || "http://127.0.0.1:8091";
+
+      dom.apiHint.textContent = `API: ${apiBase}`;
+
+      const rawLogin = getCookie(COOKIE_NAME);
+      const loginPayload = rawLogin ? safeParseJson(rawLogin) : null;
+      const userId = loginPayload && loginPayload.user ? String(loginPayload.user) : "";
+
+      if (!userId) {
+        window.location.replace("./login.html");
+      }
+
+      dom.userIdText.textContent = userId;
+      dom.metaUserId.textContent = userId;
+      dom.loginMeta.textContent = loginPayload && loginPayload.ts ? `登录于 ${formatTime(loginPayload.ts)}` : "已登录";
+
+      function setStatus(text, type) {
+        dom.status.textContent = text || "";
+        dom.status.classList.toggle("error", type === "error");
+      }
+
+      function setBackendModalVisible(visible) {
+        dom.backendModal.style.display = visible ? "flex" : "none";
+        if (visible) dom.backendRetryBtn.focus();
+      }
+
+      function showBackendModal(reason) {
+        const msg = reason && reason.message ? String(reason.message) : String(reason || "");
+        const curl = `curl -s ${apiBase}/api/v1/query_ai_agent_config_list`;
+        dom.backendDesc.textContent =
+          "当前页面需要访问服务端接口。请先启动服务端，然后点击“重试”。如果服务端已启动但仍不可用，请检查是否更换了服务端地址（可在工程内 docs/dev-ops/nginx/html/js/config.js 配置 API_BASE）。";
+        dom.backendCode.textContent = `配置文件：docs/dev-ops/nginx/html/js/config.js\nAPI_BASE: ${apiBase}\n${curl}${msg ? `\n\n错误：${msg}` : ""}`;
+        setBackendModalVisible(true);
+      }
+
+      function isBackendUnavailableError(err) {
+        const msg = err && err.message ? String(err.message) : String(err || "");
+        return (
+          msg.includes("Failed to fetch") ||
+          msg.includes("NetworkError") ||
+          msg.includes("Load failed") ||
+          msg.includes("CORS") ||
+          msg.includes("fetch")
+        );
+      }
+
+      dom.backendCloseBtn.addEventListener("click", () => setBackendModalVisible(false));
+      dom.backendOkBtn.addEventListener("click", () => setBackendModalVisible(false));
+      dom.backendModal.addEventListener("click", (e) => {
+        if (e.target === dom.backendModal) setBackendModalVisible(false);
+      });
+
+      function scrollToBottom() {
+        dom.chat.scrollTop = dom.chat.scrollHeight;
+      }
+
+      function addBubble(side, text, metaText) {
+        const row = document.createElement("div");
+        row.className = `msg-row ${side}`;
+        const bubble = document.createElement("div");
+        bubble.className = `bubble ${side}`;
+        bubble.innerHTML = escapeHtml(text || "");
+        if (metaText) {
+          const meta = document.createElement("div");
+          meta.className = "meta-line";
+          meta.textContent = metaText;
+          bubble.appendChild(meta);
+        }
+        row.appendChild(bubble);
+        dom.chat.appendChild(row);
+        dom.chatTip.style.display = "none";
+        scrollToBottom();
+        return bubble;
+      }
+
+      async function requestJson(path, options) {
+        const url = `${apiBase}${path}`;
+        let res;
+        try {
+          res = await fetch(url, {
+            headers: {
+              "Content-Type": "application/json",
+              ...(options && options.headers ? options.headers : {}),
+            },
+            ...options,
+          });
+        } catch (err) {
+          if (isBackendUnavailableError(err)) showBackendModal(err);
+          throw err;
+        }
+        const contentType = res.headers.get("content-type") || "";
+        const raw = await res.text();
+        let json = null;
+        if (contentType.includes("application/json")) {
+          json = safeParseJson(raw);
+        } else {
+          json = safeParseJson(raw) || { raw };
+        }
+        if (!res.ok) {
+          const message = (json && (json.info || json.message)) || raw || `HTTP ${res.status}`;
+          throw new Error(message);
+        }
+        return json;
+      }
+
+      function ensureSuccess(resp) {
+        if (!resp) throw new Error("接口无返回");
+        if (resp.code && resp.code !== "0000") {
+          throw new Error(resp.info || `接口失败：${resp.code}`);
+        }
+        return resp.data;
+      }
+
+      async function loadAgents() {
+        dom.agentSelect.innerHTML = `<option value="">加载中…</option>`;
+        const resp = await requestJson("/api/v1/query_ai_agent_config_list", {
+          method: "GET",
+        });
+        const data = ensureSuccess(resp) || [];
+
+        const lastAgentId = localStorage.getItem("ai_agent_last_agent") || "";
+        const options = [`<option value="">请选择智能体</option>`].concat(
+          data.map((x) => {
+            const id = x.agentId || "";
+            const name = x.agentName || id;
+            const desc = x.agentDesc ? ` - ${x.agentDesc}` : "";
+            const selected = id && id === lastAgentId ? "selected" : "";
+            return `<option value="${escapeHtml(id)}" ${selected}>${escapeHtml(
+              name
+            )}${escapeHtml(desc)}</option>`;
+          })
+        );
+        dom.agentSelect.innerHTML = options.join("");
+
+        if (dom.agentSelect.value) {
+          dom.metaAgent.textContent =
+            dom.agentSelect.options[dom.agentSelect.selectedIndex].textContent || dom.agentSelect.value;
+        }
+      }
+
+      dom.agentSelect.addEventListener("change", () => {
+        const agentId = dom.agentSelect.value || "";
+        if (agentId) localStorage.setItem("ai_agent_last_agent", agentId);
+        dom.metaAgent.textContent =
+          dom.agentSelect.options[dom.agentSelect.selectedIndex].textContent || "-";
+      });
+
+      dom.logoutBtn.addEventListener("click", () => {
+        deleteCookie(COOKIE_NAME);
+        window.location.replace("./login.html");
+      });
+
+      function setSending(sending) {
+        dom.sendBtn.disabled = !!sending;
+        dom.message.disabled = !!sending;
+      }
+
+      async function createSession(agentId) {
+        const resp = await requestJson("/api/v1/create_session", {
+          method: "POST",
+          body: JSON.stringify({ agentId, userId }),
+        });
+        const data = ensureSuccess(resp);
+        const sessionId = data && data.sessionId ? String(data.sessionId) : "";
+        if (!sessionId) throw new Error("创建会话失败：无 sessionId");
+        dom.metaSession.textContent = sessionId;
+        return sessionId;
+      }
+
+      async function chat(agentId, sessionId, message) {
+        const resp = await requestJson("/api/v1/chat", {
+          method: "POST",
+          body: JSON.stringify({ agentId, userId, sessionId, message }),
+        });
+        const data = ensureSuccess(resp);
+        return data && data.content ? String(data.content) : "";
+      }
+
+      dom.message.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          dom.composer.requestSubmit();
+        }
+      });
+
+      dom.composer.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        setStatus("");
+
+        const agentId = dom.agentSelect.value || "";
+        if (!agentId) {
+          setStatus("请先选择智能体。", "error");
+          dom.agentSelect.focus();
+          return;
+        }
+
+        const message = (dom.message.value || "").trim();
+        if (!message) return;
+
+        dom.message.value = "";
+        setSending(true);
+        const userBubble = addBubble("user", message, `userId=${userId}`);
+        const agentBubble = addBubble("agent", "思考中…", `agentId=${agentId}`);
+
+        try {
+          const sessionId = await createSession(agentId);
+          agentBubble.querySelector(".meta-line").textContent = `agentId=${agentId} · sessionId=${sessionId}`;
+          const reply = await chat(agentId, sessionId, message);
+          agentBubble.innerHTML = escapeHtml(reply || "(空响应)");
+          const meta = document.createElement("div");
+          meta.className = "meta-line";
+          meta.textContent = `agentId=${agentId} · sessionId=${sessionId}`;
+          agentBubble.appendChild(meta);
+          setStatus("已完成。", "info");
+        } catch (err) {
+          const msg = err && err.message ? err.message : "请求失败";
+          if (isBackendUnavailableError(err)) showBackendModal(err);
+          agentBubble.innerHTML = escapeHtml(`请求失败：${msg}`);
+          const meta = document.createElement("div");
+          meta.className = "meta-line";
+          meta.textContent = `请检查 API_BASE / 服务端 CORS / 接口是否启动`;
+          agentBubble.appendChild(meta);
+          setStatus(`失败：${msg}`, "error");
+        } finally {
+          setSending(false);
+          scrollToBottom();
+          userBubble.scrollIntoView({ block: "nearest" });
+        }
+      });
+
+      (async function boot() {
+        try {
+          await loadAgents();
+          setStatus("已加载智能体列表。", "info");
+        } catch (err) {
+          const msg = err && err.message ? err.message : "加载失败";
+          dom.agentSelect.innerHTML = `<option value="">加载失败</option>`;
+          setStatus(`智能体列表加载失败：${msg}`, "error");
+          if (isBackendUnavailableError(err)) showBackendModal(err);
+        }
+      })();
+
+      dom.backendRetryBtn.addEventListener("click", async () => {
+        setBackendModalVisible(false);
+        setStatus("正在重试连接服务端…", "info");
+        try {
+          await loadAgents();
+          setStatus("服务端已可用，已加载智能体列表。", "info");
+        } catch (err) {
+          const msg = err && err.message ? err.message : "重试失败";
+          dom.agentSelect.innerHTML = `<option value="">加载失败</option>`;
+          setStatus(`重试失败：${msg}`, "error");
+          if (isBackendUnavailableError(err)) showBackendModal(err);
+        }
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,36 @@
+ai:
+  agent:
+    config:
+      tables:
+        testAgent03:
+          app-name: testAgent03
+          agent:
+            agent-id: 100003
+            agent-name: 单一智能体
+            agent-desc: 单一智能体
+          module:
+            ai-api:
+              base-url: https://apis.itedus.cn
+              api-key: sk-2GQTYTNoQSs7qizlE9F00bD84d254c2994D44d6410B0Ac8f
+              completions-path: v1/chat/completions
+              embeddings-path: v1/embeddings
+            chat-model:
+              model: gpt-4.1
+              tool-mcp-list:
+                - sse:
+                    name: baidu-search
+                    base-uri: http://appbuilder.baidu.com/v2/ai_search/mcp/
+                    sse-endpoint: sse?api_key=bce-v3/ALTAK-3zODLb9qHozIftQlGwez5/2696e92781f5bf1ba1870e2958f239fd6dc822a4
+                    request-timeout: 500000
+                - local:
+                    name: myToolCallbackProvider
+            agents:
+              - name: onlyAgent
+                description: 小傅哥学习项目计划
+                instruction: |
+                  通过百度检索小傅哥编程实战项目，并根据检索内容，针对初学用户给出学习计划。
+            runner:
+              agent-name: onlyAgent
+              plugin-name-list:
+                - myTestPlugin
+                - myLogPlugin
