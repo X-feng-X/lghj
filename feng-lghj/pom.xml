@@ -28,7 +28,7 @@
         <lombok>1.18.30</lombok>
         <spring-cloud>2021.0.3</spring-cloud>
         <spring-cloud-alibaba>2021.0.4.0</spring-cloud-alibaba>
-        <mybatis-plus>3.4.3</mybatis-plus>
+        <mybatis-plus>3.5.7</mybatis-plus>
         <mysql>8.0.23</mysql>
         <hutool>5.8.11</hutool>
         <druid>1.2.16</druid>

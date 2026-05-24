@@ -21,7 +21,7 @@ ai:
                     name: investmentTradeToolCallbackProvider
               tool-skills-list:
                 - type: resource
-                  path: agent/skills/investment-research/SKILL.md
+                  path: agent/skills/investment-research
             agents:
               - name: MarketAnalysisAgent
                 description: 分析宏观环境、行业景气度、公司基本面和公开事件影响。

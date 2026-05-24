@@ -1,3 +1,9 @@
+---
+name: investment-research
+description: Investment research and simulated trading behavior analysis guide for stock, fund, portfolio, market, and trading questions.
+license: MIT
+---
+
 # Investment Research Skill
 
 Use this skill when answering stock, fund, portfolio, market, or trading questions.

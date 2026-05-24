@@ -26,6 +26,7 @@ spring:
       #      - classpath:agent/test-agent.yml
       #      - classpath:agent/only-one-agent.yml
       - classpath:agent/investment_advisor_supervisor.yml
+      - optional:classpath:agent/investment_advisor_supervisor_local.yml
   datasource:
     username: root
     password: 123456
