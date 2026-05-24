@@ -3,10 +3,10 @@ server:
 
 spring:
   datasource:
-    url: jdbc:mysql://182.61.49.48:13306/lghj?useUnicode=true&characterEncoding=UTF-8&autoReconnect=true&serverTimezone=Asia/Shanghai&rewriteBatchedStatements=true
+    url: jdbc:mysql://${LGHJ_MYSQL_HOST:127.0.0.1}:${LGHJ_MYSQL_PORT:3306}/${LGHJ_MYSQL_DATABASE:lghj}?useUnicode=true&characterEncoding=UTF-8&autoReconnect=true&serverTimezone=Asia/Shanghai&rewriteBatchedStatements=true
     driver-class-name: com.mysql.cj.jdbc.Driver
-    username: root
-    password: 123456
+    username: ${LGHJ_MYSQL_USERNAME:root}
+    password: ${LGHJ_MYSQL_PASSWORD:123456}
     druid:
       initial-size: 5
       max-active: 20
@@ -19,12 +19,12 @@ spring:
         size: 5
 
   redis:
-    host: 182.61.49.48
-    port: 16379
-    database: 8
+    host: ${LGHJ_REDIS_HOST:127.0.0.1}
+    port: ${LGHJ_REDIS_PORT:6379}
+    database: ${LGHJ_REDIS_DATABASE:8}
 
   elasticsearch:
-    uris: 182.61.49.48:19200
+    uris: ${LGHJ_ES_URIS:http://127.0.0.1:9200}
 
   mvc:
     pathmatch:

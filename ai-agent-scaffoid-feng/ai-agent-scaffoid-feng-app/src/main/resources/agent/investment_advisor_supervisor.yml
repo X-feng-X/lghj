@@ -10,12 +10,15 @@ ai:
             agent-desc: 基于多智能体层级编排的股票投资咨询助手
           module:
             ai-api:
-              base-url: ${AI_AGENT_BASE_URL:https://api.openai.com}
+              base-url: ${AI_AGENT_BASE_URL:https://api.deepseek.com}
               api-key: ${AI_AGENT_API_KEY:}
               completions-path: ${AI_AGENT_COMPLETIONS_PATH:/v1/chat/completions}
               embeddings-path: ${AI_AGENT_EMBEDDINGS_PATH:/v1/embeddings}
             chat-model:
-              model: ${AI_AGENT_MODEL:gpt-4.1}
+              model: ${AI_AGENT_MODEL:deepseek-chat}
+              tool-skills-list:
+                - type: resource
+                  path: agent/skills/investment-research/SKILL.md
             agents:
               - name: MarketAnalysisAgent
                 description: 分析宏观环境、行业景气度、公司基本面和新闻影响。
