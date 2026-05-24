@@ -1,6 +1,12 @@
 server:
   port: 8091
 
+lghj:
+  client:
+    base-url: ${LGHJ_BASE_URL:http://127.0.0.1:8080}
+    internal-token: ${LGHJ_INTERNAL_API_TOKEN:}
+    timeout-seconds: ${LGHJ_CLIENT_TIMEOUT_SECONDS:5}
+
 # 线程池配置
 thread:
   pool:
