@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: registry.cn-hangzhou.aliyuncs.com/xfg-studio/mysql:8.0.32
+    container_name: lghj-mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=123456
+      - MYSQL_DATABASE=lghj
+    ports:
+      - "13306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./sql/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - lghj-network
+    restart: always
+
+  redis:
+    image: registry.cn-hangzhou.aliyuncs.com/xfg-studio/redis:6.2
+    container_name: lghj-redis
+    ports:
+      - "16379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - lghj-network
+    restart: always
+
+  es:
+    image: elasticsearch:7.12.1
+    container_name: es
+    restart: always
+    privileged: true
+    environment:
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - discovery.type=single-node
+      - TZ=Asia/Shanghai
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+      - es-plugins:/usr/share/elasticsearch/plugins
+    networks:
+      - lghj-network
+    ports:
+      - "19200:9200"
+      - "19300:9300"
+
+  kibana:
+    image: kibana:7.12.1
+    container_name: kibana
+    restart: always
+    environment:
+      - ELASTICSEARCH_HOSTS=http://es:9200
+      - TZ=Asia/Shanghai
+    networks:
+      - lghj-network
+    ports:
+      - "15601:5601"
+    depends_on:
+      - es
+
+volumes:
+  mysql_data:
+  redis_data:
+  es-data:
+  es-plugins:
+
+networks:
+  lghj-network:
+    driver: bridge

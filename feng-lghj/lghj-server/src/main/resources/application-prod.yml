@@ -1,0 +1,69 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:mysql://182.61.49.48:13306/lghj?useUnicode=true&characterEncoding=UTF-8&autoReconnect=true&serverTimezone=Asia/Shanghai&rewriteBatchedStatements=true
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: 123456
+    druid:
+      initial-size: 5
+      max-active: 20
+      min-idle: 5
+      max-wait: 60000
+
+  task:
+    scheduling:
+      pool:
+        size: 5
+
+  redis:
+    host: 182.61.49.48
+    port: 16379
+    database: 8
+
+  elasticsearch:
+    uris: 182.61.49.48:19200
+
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+
+mybatis-plus:
+  mapper-locations: classpath*:com.lghj.mapper/**/*.xml
+  configuration:
+    default-enum-type-handler: com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      update-strategy: not_null
+      id-type: auto
+      logic-delete-field: isDeleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+knife4j:
+  enable: true
+  openapi:
+    title: 量股化金接口文档
+    description: "量股化金接口文档"
+    email: admin@example.com
+    concat: Admin
+    url: https://example.com
+    version: v1.0.0
+    group:
+      default:
+        group-name: default
+        api-rule: package
+        api-rule-resources:
+          - com.lghj.controller
+
+lghj:
+  jwt:
+    admin-secret-key: your-production-secret-key-change-this
+    admin-ttl: 7200000
+    admin-token-name: token
+    user-secret-key: your-production-secret-key-change-this
+    user-ttl: 7200000
+    user-token-name: token
