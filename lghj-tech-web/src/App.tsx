@@ -1,5 +1,7 @@
+import { useState } from "react";
 import {
   Activity,
+  ArrowLeft,
   ArrowUpRight,
   Bot,
   BrainCircuit,
@@ -8,6 +10,7 @@ import {
   Gauge,
   MessageSquareText,
   Radar,
+  Send,
   ShieldAlert,
   Sparkles,
   Wallet,
@@ -16,7 +19,9 @@ import { MetricCard } from "./components/MetricCard";
 import { Sparkline } from "./components/Sparkline";
 import {
   account,
+  advisorChat,
   advisorMessage,
+  advisorTasks,
   communityPosts,
   deals,
   marketIndexes,
@@ -30,14 +35,21 @@ import {
 const formatMoney = (value: number) =>
   new Intl.NumberFormat("zh-CN", { style: "currency", currency: "CNY", maximumFractionDigits: 0 }).format(value);
 
+type ViewMode = "dashboard" | "advisor";
+
 export default function App() {
+  const [viewMode, setViewMode] = useState<ViewMode>("dashboard");
+
+  const openAdvisor = () => setViewMode("advisor");
+  const openDashboard = () => setViewMode("dashboard");
+
   return (
     <main className="app-shell">
       <div className="grid-backdrop" />
       <div className="scan-backdrop" />
 
       <header className="topbar">
-        <div className="brand">
+        <button className="brand brand-button" type="button" onClick={openDashboard}>
           <div className="brand-mark">
             <ChartCandlestick size={24} />
           </div>
@@ -45,12 +57,12 @@ export default function App() {
             <p>LiangGu HuaJin</p>
             <h1>量股化金智能交易驾驶舱</h1>
           </div>
-        </div>
+        </button>
         <div className="market-status">
           <span className="pulse-dot" />
           A 股模拟盘运行中
         </div>
-        <button className="ai-entry" type="button">
+        <button className="ai-entry" type="button" onClick={openAdvisor}>
           <Bot size={18} />
           AI 投资顾问
         </button>
@@ -66,6 +78,14 @@ export default function App() {
         </div>
       </section>
 
+      {viewMode === "dashboard" ? <DashboardView onOpenAdvisor={openAdvisor} /> : <AdvisorWorkspace onBack={openDashboard} />}
+    </main>
+  );
+}
+
+function DashboardView({ onOpenAdvisor }: { onOpenAdvisor: () => void }) {
+  return (
+    <>
       <section className="dashboard-grid">
         <aside className="panel market-panel">
           <div className="panel-heading">
@@ -209,7 +229,7 @@ export default function App() {
             ))}
           </div>
 
-          <button className="ask-button" type="button">
+          <button className="ask-button" type="button" onClick={onOpenAdvisor}>
             <MessageSquareText size={17} />
             进入顾问对话
             <ArrowUpRight size={16} />
@@ -272,6 +292,97 @@ export default function App() {
           </div>
         </div>
       </section>
-    </main>
+    </>
+  );
+}
+
+function AdvisorWorkspace({ onBack }: { onBack: () => void }) {
+  return (
+    <section className="advisor-workspace">
+      <div className="advisor-hero">
+        <button className="back-button" type="button" onClick={onBack}>
+          <ArrowLeft size={17} />
+          返回驾驶舱
+        </button>
+        <div>
+          <p>Investment Advisor Supervisor</p>
+          <h2>基于交易画像的智能投资顾问</h2>
+          <span>当前为 Mock 体验页，后续将接入 agent 服务的 /api/v1/chat 与 /api/v1/chat_stream。</span>
+        </div>
+      </div>
+
+      <div className="advisor-layout">
+        <aside className="panel profile-panel">
+          <div className="panel-heading">
+            <div>
+              <p>Trading Profile</p>
+              <h2>用户交易画像</h2>
+            </div>
+            <BrainCircuit size={19} />
+          </div>
+
+          {advisorTasks.map((task) => (
+            <div className="profile-row" key={task.label}>
+              <div>
+                <strong>{task.label}</strong>
+                <span>{task.value}</span>
+              </div>
+              <div className="heat-bar">
+                <i style={{ width: `${task.level}%` }} />
+              </div>
+            </div>
+          ))}
+
+          <div className="advisor-message profile-note">
+            <span>服务边界</span>
+            <p>顾问输出只提供分析框架和观察建议，不承诺收益，不构成保本预测。</p>
+          </div>
+        </aside>
+
+        <section className="panel chat-panel">
+          <div className="panel-heading">
+            <div>
+              <p>Agent Conversation</p>
+              <h2>顾问对话</h2>
+            </div>
+            <Sparkles size={19} />
+          </div>
+
+          <div className="chat-stream">
+            {advisorChat.map((message, index) => (
+              <div className={`chat-bubble ${message.role}`} key={`${message.role}-${index}`}>
+                <span>{message.role === "user" ? "你" : "AI 投资顾问"}</span>
+                <p>{message.text}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="chat-composer">
+            <input value="帮我分析下一步应该先看哪些风险指标" readOnly aria-label="顾问问题输入框" />
+            <button type="button">
+              <Send size={17} />
+              发送
+            </button>
+          </div>
+        </section>
+
+        <aside className="panel execution-panel">
+          <div className="panel-heading">
+            <div>
+              <p>Action Board</p>
+              <h2>观察清单</h2>
+            </div>
+            <ShieldAlert size={19} />
+          </div>
+
+          {advisorMessage.suggestions.map((suggestion, index) => (
+            <div className="action-card" key={suggestion}>
+              <b>{index + 1}</b>
+              <p>{suggestion}</p>
+            </div>
+          ))}
+        </aside>
+      </div>
+    </section>
   );
 }

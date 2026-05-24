@@ -66,6 +66,27 @@ export const advisorMessage = {
   ],
 };
 
+export const advisorChat = [
+  {
+    role: "user",
+    text: "根据我的模拟交易记录，当前账户最大的问题是什么？",
+  },
+  {
+    role: "assistant",
+    text: "你的账户目前不是收益率问题，而是交易结构问题：持仓过度集中，挂单以买入为主，缺少退出规则。建议先处理异常挂单，再为贵州茅台设置观察区间和减仓条件。",
+  },
+  {
+    role: "assistant",
+    text: "这不是保本预测，也不是买卖承诺。后续需要关注成交纪律、单票仓位上限、止损触发条件和市场风格切换。",
+  },
+];
+
+export const advisorTasks = [
+  { label: "交易画像", value: "高集中 + 买入偏好", level: 86 },
+  { label: "风控优先级", value: "先处理异常委托", level: 74 },
+  { label: "组合建议", value: "补充弱相关标的池", level: 62 },
+];
+
 export const marketNews = [
   "北向资金盘中净流入扩大，消费与银行板块活跃。",
   "多家券商上调高股息资产配置权重，防御风格升温。",

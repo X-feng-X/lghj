@@ -79,6 +79,15 @@ button {
   gap: 14px;
 }
 
+.brand-button {
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
 .brand-mark,
 .advisor-avatar,
 .metric-icon {
@@ -115,7 +124,9 @@ button {
 
 .market-status,
 .ai-entry,
-.ask-button {
+.ask-button,
+.back-button,
+.chat-composer button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -143,14 +154,18 @@ button {
 }
 
 .ai-entry,
-.ask-button {
+.ask-button,
+.back-button,
+.chat-composer button {
   cursor: pointer;
   padding: 0 16px;
   transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
 }
 
 .ai-entry:hover,
-.ask-button:hover {
+.ask-button:hover,
+.back-button:hover,
+.chat-composer button:hover {
   transform: translateY(-2px);
   border-color: rgba(111, 246, 232, 0.55);
   background: rgba(17, 55, 66, 0.82);
@@ -603,6 +618,168 @@ button {
   background: rgba(255, 209, 102, 0.1);
 }
 
+.advisor-workspace {
+  position: relative;
+  z-index: 1;
+  max-width: 1560px;
+  margin: 0 auto;
+}
+
+.advisor-hero {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 18px;
+  align-items: center;
+  margin-bottom: 18px;
+  padding: 20px;
+  border: 1px solid rgba(126, 226, 255, 0.16);
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(72, 245, 210, 0.12), rgba(80, 124, 255, 0.09));
+}
+
+.advisor-hero p,
+.advisor-hero h2,
+.advisor-hero span {
+  margin: 0;
+}
+
+.advisor-hero p {
+  color: #7fb1bd;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.advisor-hero h2 {
+  margin: 5px 0 7px;
+  font-size: 28px;
+}
+
+.advisor-hero span {
+  color: #b8d0d6;
+}
+
+.advisor-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.82fr) minmax(520px, 1.45fr) minmax(280px, 0.86fr);
+  gap: 18px;
+}
+
+.profile-panel,
+.execution-panel,
+.chat-panel {
+  min-height: 560px;
+}
+
+.profile-row {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.profile-row strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.profile-row span {
+  color: #91b9c2;
+  font-size: 13px;
+}
+
+.profile-note {
+  margin-top: 24px;
+}
+
+.chat-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-stream {
+  display: grid;
+  gap: 14px;
+  flex: 1;
+  align-content: start;
+  padding: 4px 0 18px;
+}
+
+.chat-bubble {
+  max-width: 82%;
+  padding: 14px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(126, 226, 255, 0.14);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.chat-bubble.user {
+  justify-self: end;
+  background: rgba(72, 245, 210, 0.09);
+}
+
+.chat-bubble.assistant {
+  justify-self: start;
+}
+
+.chat-bubble span {
+  display: block;
+  margin-bottom: 7px;
+  color: #75f5e1;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.chat-bubble p {
+  margin: 0;
+  color: #d7eef3;
+  line-height: 1.68;
+}
+
+.chat-composer {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.chat-composer input {
+  min-width: 0;
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid rgba(126, 226, 255, 0.16);
+  border-radius: 8px;
+  color: #dffcff;
+  background: rgba(7, 24, 32, 0.72);
+}
+
+.action-card {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.action-card:last-child {
+  border-bottom: 0;
+}
+
+.action-card b {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  color: #061014;
+  background: #69fbe2;
+}
+
+.action-card p {
+  margin: 0;
+  color: #b8d0d6;
+  line-height: 1.62;
+}
+
 @keyframes gridMove {
   from { transform: translateY(0); }
   to { transform: translateY(52px); }
@@ -643,6 +820,16 @@ button {
   .bottom-grid {
     grid-template-columns: 1fr;
   }
+
+  .advisor-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-panel,
+  .execution-panel,
+  .chat-panel {
+    min-height: auto;
+  }
 }
 
 @media (max-width: 760px) {
@@ -666,6 +853,22 @@ button {
   .metrics-grid,
   .split-panels {
     grid-template-columns: 1fr;
+  }
+
+  .advisor-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .advisor-hero h2 {
+    font-size: 23px;
+  }
+
+  .chat-composer {
+    grid-template-columns: 1fr;
+  }
+
+  .chat-bubble {
+    max-width: 100%;
   }
 
   .asset-visual {
