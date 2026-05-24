@@ -94,7 +94,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         }
 
         // 业务校验：用户名去重（核心业务逻辑，避免重复数据）
-        Integer usernameCount = baseMapper.selectCount(new LambdaQueryWrapper<User>()
+        Long usernameCount = baseMapper.selectCount(new LambdaQueryWrapper<User>()
                 .eq(User::getUsername, userDTO.getUsername()));
         if (usernameCount > 0) {
             log.error("新增用户失败：用户名 {} 已存在", userDTO.getUsername());

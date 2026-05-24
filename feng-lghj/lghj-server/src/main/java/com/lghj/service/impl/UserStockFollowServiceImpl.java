@@ -57,7 +57,7 @@ public class UserStockFollowServiceImpl extends ServiceImpl<UserStockFollowMappe
         }
 
         // 查数据库兜底
-        Integer count = baseMapper.selectCount(new LambdaQueryWrapper<UserStockFollow>()
+        Long count = baseMapper.selectCount(new LambdaQueryWrapper<UserStockFollow>()
                 .eq(UserStockFollow::getUserId, userId)
                 .eq(UserStockFollow::getStockId, stock.getId()));
         if (count > 0) {

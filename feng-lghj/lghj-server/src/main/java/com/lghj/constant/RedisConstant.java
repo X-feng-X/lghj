@@ -39,6 +39,4 @@ public class RedisConstant {
     /**
      * 股票预测结果Key前缀stock:prediction:{stock}
      */
-    public static final String STOCK_PREDICTION = "stock:prediction";
-
 }
