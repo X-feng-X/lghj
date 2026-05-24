@@ -1,0 +1,530 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI 智能体 · 登录</title>
+    <style>
+      :root {
+        --bg0: #070a12;
+        --bg1: #0b1022;
+        --card: rgba(255, 255, 255, 0.06);
+        --card2: rgba(255, 255, 255, 0.08);
+        --text: rgba(255, 255, 255, 0.92);
+        --muted: rgba(255, 255, 255, 0.72);
+        --muted2: rgba(255, 255, 255, 0.56);
+        --border: rgba(255, 255, 255, 0.12);
+        --primary: #62f6c7;
+        --primary2: #5aa9ff;
+        --danger: #ff5a7a;
+        --shadow: 0 22px 60px rgba(0, 0, 0, 0.55);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100%;
+      }
+
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
+          Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+        color: var(--text);
+        background: radial-gradient(1200px 600px at 20% 18%, rgba(98, 246, 199, 0.24), rgba(98, 246, 199, 0) 55%),
+          radial-gradient(900px 560px at 78% 20%, rgba(90, 169, 255, 0.22), rgba(90, 169, 255, 0) 55%),
+          radial-gradient(900px 640px at 55% 78%, rgba(255, 90, 122, 0.12), rgba(255, 90, 122, 0) 55%),
+          linear-gradient(180deg, var(--bg0), var(--bg1));
+      }
+
+      .page {
+        min-height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: stretch;
+        padding: 28px;
+      }
+
+      .shell {
+        width: min(1120px, 100%);
+        display: grid;
+        grid-template-columns: 1.25fr 0.75fr;
+        gap: 18px;
+      }
+
+      .panel {
+        border: 1px solid var(--border);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
+        border-radius: 18px;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+        position: relative;
+      }
+
+      .hero {
+        padding: 28px 28px 22px 28px;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .brand-badge {
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        display: grid;
+        place-items: center;
+        background: radial-gradient(14px 14px at 30% 30%, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0)),
+          linear-gradient(135deg, rgba(98, 246, 199, 0.9), rgba(90, 169, 255, 0.9));
+        color: rgba(7, 10, 18, 0.92);
+        font-weight: 800;
+        letter-spacing: 0.5px;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+      }
+
+      .brand-title {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .brand-title strong {
+        font-size: 16px;
+        line-height: 1.1;
+        letter-spacing: 0.2px;
+      }
+
+      .brand-title span {
+        font-size: 12px;
+        color: var(--muted2);
+      }
+
+      .hero h1 {
+        margin: 6px 0 0 0;
+        font-size: 30px;
+        line-height: 1.2;
+        letter-spacing: 0.2px;
+      }
+
+      .hero p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.7;
+        max-width: 52ch;
+      }
+
+      .hero-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 6px;
+      }
+
+      .hero-item {
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.04);
+        border-radius: 14px;
+        padding: 12px 12px 12px 12px;
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+      }
+
+      .hero-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        margin-top: 5px;
+        flex: 0 0 auto;
+        background: linear-gradient(135deg, var(--primary), var(--primary2));
+        box-shadow: 0 0 0 4px rgba(98, 246, 199, 0.08);
+      }
+
+      .hero-item b {
+        display: block;
+        font-size: 13px;
+        margin-bottom: 3px;
+      }
+
+      .hero-item span {
+        display: block;
+        font-size: 12px;
+        color: var(--muted2);
+        line-height: 1.5;
+      }
+
+      .hero-visual {
+        margin-top: 10px;
+        border-radius: 16px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.10);
+        background: rgba(0, 0, 0, 0.24);
+      }
+
+      .hero-visual img {
+        display: block;
+        width: 100%;
+        height: 340px;
+        object-fit: cover;
+      }
+
+      .login {
+        padding: 28px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 14px;
+      }
+
+      .card {
+        border: 1px solid var(--border);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.035));
+        border-radius: 16px;
+        padding: 20px;
+      }
+
+      .card h2 {
+        margin: 0 0 6px 0;
+        font-size: 18px;
+      }
+
+      .card .hint {
+        margin: 0 0 16px 0;
+        color: var(--muted2);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      .row {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+
+      label {
+        font-size: 12px;
+        color: var(--muted);
+        letter-spacing: 0.2px;
+      }
+
+      input[type="text"],
+      input[type="password"] {
+        width: 100%;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        background: rgba(0, 0, 0, 0.18);
+        padding: 12px 12px;
+        color: var(--text);
+        outline: none;
+        transition: border-color 180ms ease, box-shadow 180ms ease;
+      }
+
+      input[type="text"]:focus,
+      input[type="password"]:focus {
+        border-color: rgba(98, 246, 199, 0.55);
+        box-shadow: 0 0 0 4px rgba(98, 246, 199, 0.12);
+      }
+
+      .actions {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 6px;
+      }
+
+      .btn {
+        border: 0;
+        border-radius: 12px;
+        padding: 11px 14px;
+        font-weight: 700;
+        cursor: pointer;
+        color: rgba(7, 10, 18, 0.92);
+        background: linear-gradient(135deg, var(--primary), var(--primary2));
+        box-shadow: 0 14px 28px rgba(0, 0, 0, 0.35);
+        transition: transform 120ms ease, filter 120ms ease;
+      }
+
+      .btn:active {
+        transform: translateY(1px);
+        filter: brightness(0.98);
+      }
+
+      .btn-secondary {
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--text);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        box-shadow: none;
+        font-weight: 600;
+      }
+
+      .msg {
+        min-height: 18px;
+        font-size: 12px;
+        color: var(--muted2);
+      }
+
+      .msg.error {
+        color: var(--danger);
+      }
+
+      .logged {
+        display: none;
+        gap: 10px;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 12px;
+        border: 1px dashed rgba(255, 255, 255, 0.18);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.04);
+        margin-top: 12px;
+      }
+
+      .logged strong {
+        font-size: 13px;
+      }
+
+      .logged span {
+        display: block;
+        font-size: 12px;
+        color: var(--muted2);
+        margin-top: 2px;
+      }
+
+      .footer {
+        margin-top: 14px;
+        color: rgba(255, 255, 255, 0.35);
+        font-size: 12px;
+        text-align: center;
+      }
+
+      @media (max-width: 980px) {
+        .shell {
+          grid-template-columns: 1fr;
+        }
+        .hero-visual img {
+          height: 300px;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <main class="page">
+      <div class="shell">
+        <section class="panel hero" aria-label="产品介绍">
+          <div class="brand">
+            <div class="brand-badge" aria-hidden="true">AI</div>
+            <div class="brand-title">
+              <strong>AI 智能体工作台 By Ai Agent Scaffold - @小傅哥</strong>
+              <span>更快搭建 · 更稳运行 · 更易运维</span>
+            </div>
+          </div>
+
+          <h1>一个能“帮你把事做完”的智能体登录页</h1>
+          <p>
+            左侧展示智能体能力与效果图，右侧进行登录。当前为演示登录：
+            账号 <b>admin</b>，密码 <b>admin</b>。登录成功后会在浏览器保存 cookie。
+          </p>
+
+          <div class="hero-list">
+            <div class="hero-item">
+              <div class="hero-dot" aria-hidden="true"></div>
+              <div>
+                <b>工具调用</b>
+                <span>支持 API / Shell / 文件等执行链路编排</span>
+              </div>
+            </div>
+            <div class="hero-item">
+              <div class="hero-dot" aria-hidden="true"></div>
+              <div>
+                <b>记忆与上下文</b>
+                <span>可配置可审计，减少重复沟通成本</span>
+              </div>
+            </div>
+            <div class="hero-item">
+              <div class="hero-dot" aria-hidden="true"></div>
+              <div>
+                <b>多模型路由</b>
+                <span>按场景选择最合适的模型与策略</span>
+              </div>
+            </div>
+            <div class="hero-item">
+              <div class="hero-dot" aria-hidden="true"></div>
+              <div>
+                <b>可观测性</b>
+                <span>链路、成本、失败原因都能追踪</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="hero-visual" aria-label="AI 效果图">
+            <img src="images/ai-hero.svg" alt="AI 智能体效果图" />
+          </div>
+        </section>
+
+        <section class="panel login" aria-label="登录">
+          <div class="card">
+            <h2>登录</h2>
+            <p class="hint">
+              演示账号：admin / admin（可在页面脚本中替换成真实鉴权接口）
+            </p>
+
+            <form id="loginForm" autocomplete="on">
+              <div class="row">
+                <label for="username">账号</label>
+                <input id="username" name="username" type="text" placeholder="请输入账号" autocomplete="username" />
+              </div>
+
+              <div class="row">
+                <label for="password">密码</label>
+                <input id="password" name="password" type="password" placeholder="请输入密码" autocomplete="current-password" />
+              </div>
+
+              <div class="actions">
+                <button class="btn" type="submit">登录并保存 Cookie</button>
+                <button class="btn btn-secondary" type="button" id="fillDemo">填充演示账号</button>
+              </div>
+
+              <div class="msg" id="msg" role="status" aria-live="polite"></div>
+            </form>
+
+            <div class="logged" id="loggedBox">
+              <div>
+                <strong id="loggedUser">已登录</strong>
+                <span id="loggedMeta"></span>
+              </div>
+              <button class="btn btn-secondary" type="button" id="logoutBtn">退出</button>
+            </div>
+          </div>
+
+          <div class="footer">© AI Agent Scaffold · Nginx 静态页面示例</div>
+        </section>
+      </div>
+    </main>
+
+    <script>
+      const COOKIE_NAME = "ai_agent_login";
+      const COOKIE_DAYS = 7;
+
+      function setCookie(name, value, days) {
+        const maxAge = Math.max(0, Math.floor(days * 86400));
+        document.cookie = `${name}=${encodeURIComponent(value)}; Max-Age=${maxAge}; Path=/; SameSite=Lax`;
+      }
+
+      function getCookie(name) {
+        const cookies = document.cookie ? document.cookie.split("; ") : [];
+        for (const item of cookies) {
+          const eqIndex = item.indexOf("=");
+          const k = eqIndex >= 0 ? item.slice(0, eqIndex) : item;
+          const v = eqIndex >= 0 ? item.slice(eqIndex + 1) : "";
+          if (k === name) return decodeURIComponent(v);
+        }
+        return null;
+      }
+
+      function deleteCookie(name) {
+        document.cookie = `${name}=; Max-Age=0; Path=/; SameSite=Lax`;
+      }
+
+      function safeParseJson(text) {
+        try {
+          return JSON.parse(text);
+        } catch {
+          return null;
+        }
+      }
+
+      function formatTime(ts) {
+        const d = new Date(ts);
+        const p = (n) => String(n).padStart(2, "0");
+        return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+      }
+
+      const dom = {
+        form: document.getElementById("loginForm"),
+        username: document.getElementById("username"),
+        password: document.getElementById("password"),
+        msg: document.getElementById("msg"),
+        fillDemo: document.getElementById("fillDemo"),
+        loggedBox: document.getElementById("loggedBox"),
+        loggedUser: document.getElementById("loggedUser"),
+        loggedMeta: document.getElementById("loggedMeta"),
+        logoutBtn: document.getElementById("logoutBtn"),
+      };
+
+      function setMessage(text, type) {
+        dom.msg.textContent = text || "";
+        dom.msg.classList.toggle("error", type === "error");
+      }
+
+      function showLoggedIn(payload) {
+        dom.form.style.display = "none";
+        dom.loggedBox.style.display = "flex";
+        dom.loggedUser.textContent = `已登录：${payload.user || "未知用户"}`;
+        dom.loggedMeta.textContent = payload.ts ? `上次登录：${formatTime(payload.ts)}` : "";
+      }
+
+      function showLoginForm() {
+        dom.form.style.display = "block";
+        dom.loggedBox.style.display = "none";
+      }
+
+      function bootFromCookie() {
+        const raw = getCookie(COOKIE_NAME);
+        if (!raw) return;
+        const payload = safeParseJson(raw);
+        if (!payload || !payload.user) return;
+        window.location.replace("./index.html");
+      }
+
+      dom.fillDemo.addEventListener("click", () => {
+        dom.username.value = "admin";
+        dom.password.value = "admin";
+        setMessage("已填充演示账号。", "info");
+        dom.password.focus();
+      });
+
+      dom.logoutBtn.addEventListener("click", () => {
+        deleteCookie(COOKIE_NAME);
+        setMessage("已退出登录，cookie 已清除。", "info");
+        showLoginForm();
+      });
+
+      dom.form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        setMessage("");
+
+        const username = (dom.username.value || "").trim();
+        const password = dom.password.value || "";
+
+        if (!username || !password) {
+          setMessage("请输入账号与密码。", "error");
+          return;
+        }
+
+        if (username !== "admin" || password !== "admin") {
+          setMessage("账号或密码错误（演示账号：admin / admin）。", "error");
+          return;
+        }
+
+        const payload = { user: username, ts: Date.now() };
+        setCookie(COOKIE_NAME, JSON.stringify(payload), COOKIE_DAYS);
+        setMessage("登录成功，正在跳转…", "info");
+        window.location.replace("./index.html");
+      });
+
+      bootFromCookie();
+    </script>
+  </body>
+</html>

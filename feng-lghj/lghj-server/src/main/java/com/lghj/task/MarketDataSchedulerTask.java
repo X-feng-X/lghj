@@ -1,7 +1,7 @@
 package com.lghj.task;
 
 import com.lghj.service.IRealTimeStockService;
-import com.lghj.utils.OrderBook;
+import com.lghj.utils.HybridOrderBook;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -12,14 +12,14 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * 每 3 秒获取一次活跃股票的最新价格，并推送给 OrderBook
+ * 每 3 秒获取一次活跃股票的最新价格，并推送给 HybridOrderBook
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class MarketDataSchedulerTask {
 
-    private final OrderBook orderBook;
+    private final HybridOrderBook hybridOrderBook;
     private final IRealTimeStockService realTimeStockService;
 
     /**
@@ -28,7 +28,7 @@ public class MarketDataSchedulerTask {
     @Scheduled(fixedRate = 3000)
     public void updateMarketData() {
 
-        Set<String> activeSymbols = orderBook.getActiveSymbols();
+        Set<String> activeSymbols = hybridOrderBook.getActiveSymbols();
         if (activeSymbols == null || activeSymbols.isEmpty()) {
             return;
         }
@@ -37,8 +37,6 @@ public class MarketDataSchedulerTask {
 
         for (String symbol : activeSymbols) {
             try {
-                // 获取实时价格
-                // 注意：这里需要根据股票代码判断市场（sh/sz），简化处理
                 String market = "sz";
                 if (symbol.startsWith("60")) {
                     market = "sh";
@@ -57,8 +55,7 @@ public class MarketDataSchedulerTask {
                     }
 
                     if (currentPrice != null) {
-                        // 触发撮合
-                        orderBook.processMarketData(symbol, currentPrice);
+                        hybridOrderBook.processMarketData(symbol, currentPrice);
                     }
                 }
             } catch (Exception e) {

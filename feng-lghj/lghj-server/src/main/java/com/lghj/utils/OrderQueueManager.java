@@ -5,133 +5,201 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.*;
 
 /**
- * 创建一个订单队列管理类，为每个股票维护一个独立的队列，实现撮合引擎性能优化
+ * 订单队列管理器 - 为每个股票维护独立的撮合线程
+ *
+ * <p>
+ * 设计模式：线程池 + 任务提交模式
+ *
+ * <p>
+ * 核心机制：
+ * <ul>
+ * <li>每个股票绑定一个独立的单线程执行器</li>
+ * <li>新订单到达时，向对应执行器提交处理任务</li>
+ * <li>同一股票的订单串行处理，保证顺序性</li>
+ * <li>不同股票的订单并行处理，提高吞吐量</li>
+ * </ul>
+ *
+ * <p>
+ * 架构图：
+ * <pre>
+ *                    ┌─────────────────────────────────────┐
+ *                    │         OrderQueueManager           │
+ *                    └─────────────────────────────────────┘
+ *                                    │
+ *          ┌─────────────────────────┼─────────────────────────┐
+ *          │                         │                         │
+ *          ▼                         ▼                         ▼
+ *   ┌─────────────┐          ┌─────────────┐          ┌─────────────┐
+ *   │  股票A队列   │          │  股票B队列   │          │  股票C队列   │
+ *   │ (单线程执行器)│          │ (单线程执行器)│          │ (单线程执行器)│
+ *   │             │          │             │          │             │
+ *   │ task1→task2 │          │ task1→task2 │          │ task1→task2 │
+ *   │    ↓        │          │    ↓        │          │    ↓        │
+ *   │  串行执行    │          │  串行执行    │          │  串行执行    │
+ *   └─────────────┘          └─────────────┘          └─────────────┘
+ *          │                         │                         │
+ *          └─────────────────────────┼─────────────────────────┘
+ *                                    │
+ *                                    ▼
+ *                           ┌─────────────────┐
+ *                           │  OrderProcessor │
+ *                           │   (成交处理)     │
+ *                           └─────────────────┘
+ * </pre>
  */
 @Slf4j
 @Component
 public class OrderQueueManager {
 
-    // TODO 改用RocketMQ
-    // 为每个股票维护一个独立的订单队列
-    private final Map<String, BlockingQueue<TradeOrder>> orderQueues = new HashMap<>();
+    /**
+     * 每个股票对应的单线程执行器 Key: 股票代码（如 "sh600000"） Value: 单线程执行器，保证同一股票的订单串行处理
+     */
+    private final Map<String, ExecutorService> matchExecutors = new ConcurrentHashMap<>();
 
-    // 为每个股票维护一个独立的撮合线程
-    private final Map<String, ExecutorService> matchExecutors = new HashMap<>();
-
-    // 设置订单处理器
-    // 订单处理器，由外部注入
+    /**
+     * 订单处理器回调接口 由 TradeServiceImpl 实现，处理具体的成交逻辑
+     */
     @Setter
     private OrderProcessor orderProcessor;
 
     /**
-     * 将订单加入对应股票的队列
+     * 将订单添加到处理队列
      *
-     * @param order 订单
+     * <p>
+     * 处理流程：
+     * <ol>
+     * <li>获取或创建该股票的单线程执行器</li>
+     * <li>向执行器提交订单处理任务</li>
+     * <li>执行器保证同一股票的订单串行处理</li>
+     * </ol>
+     *
+     * @param order 委托单
      */
     public void addOrder(TradeOrder order) {
-
         String symbol = order.getSymbol();
-        // 线程安全地获取或创建一个与特定 symbol 关联的 BlockingQueue，用于存放 TradeOrder（交易委托单）对象
-        BlockingQueue<TradeOrder> queue = orderQueues.computeIfAbsent(symbol, k -> new LinkedBlockingQueue<>());
 
-        // 确保对应股票的撮合线程已启动
-        startMatchThread(symbol);
+        // 获取或创建该股票的执行器
+        ExecutorService executor = getOrCreateExecutor(symbol);
 
-        try {
-            queue.put(order);
-            log.info("订单已加入队列，股票代码：{}，委托单号：{}", symbol, order.getOrderNo());
-        } catch (InterruptedException e) {
-            log.error("将订单加入队列失败，股票代码：{}，委托单号：{}", symbol, order.getOrderNo(), e);
-            Thread.currentThread().interrupt();
-        }
+        // 向执行器提交任务
+        // 单线程执行器会保证任务按提交顺序串行执行
+        executor.submit(() -> {
+            try {
+                if (orderProcessor != null) {
+                    orderProcessor.processOrder(order);
+                }
+            } catch (Exception e) {
+                log.error("处理订单失败，股票代码：{}，委托单号：{}", symbol, order.getOrderNo(), e);
+            }
+        });
+
+        log.info("订单任务已提交，股票代码：{}，委托单号：{}", symbol, order.getOrderNo());
     }
 
     /**
-     * 启动对应股票的撮合线程
+     * 获取或创建指定股票的执行器
+     *
+     * <p>
+     * 使用 computeIfAbsent 保证线程安全的懒加载：
+     * <ul>
+     * <li>如果执行器已存在，直接返回</li>
+     * <li>如果执行器不存在，创建新的单线程执行器</li>
+     * </ul>
      *
      * @param symbol 股票代码
+     * @return 该股票的单线程执行器
      */
-    private void startMatchThread(String symbol) {
-
-        // 检查是否已经存在该股票代码的执行器
-        if (!matchExecutors.containsKey(symbol)) {
-            // 创建一个单线程执行器，用于处理特定股票的撮合任务
+    private ExecutorService getOrCreateExecutor(String symbol) {
+        return matchExecutors.computeIfAbsent(symbol, k -> {
+            // 创建单线程执行器
             ExecutorService executor = Executors.newSingleThreadExecutor(r -> {
-                // 创建并配置线程
-                Thread t = new Thread(r, "match-thread-" + symbol);  // 设置线程名称
-                t.setDaemon(true);  // 设置为守护线程
+                Thread t = new Thread(r, "match-thread-" + k);
+                t.setDaemon(true); // 设置为守护线程，主线程退出时自动结束
                 return t;
             });
-
-            // 提交任务到执行器
-            executor.submit(() -> {
-                // 获取该股票的订单队列
-                BlockingQueue<TradeOrder> queue = orderQueues.get(symbol);
-                if (queue == null) {
-                    return;  // 如果队列为空，直接返回
-                }
-
-                // 循环处理订单，直到线程被中断
-                while (!Thread.currentThread().isInterrupted()) {
-                    try {
-                        // 从队列中获取订单并处理
-                        TradeOrder order = queue.take();
-                        if (orderProcessor != null) {
-                            orderProcessor.processOrder(order);
-                        }
-                    } catch (InterruptedException e) {
-                        // 处理线程中断异常
-                        log.info("撮合线程被中断，股票代码：{}", symbol);
-                        Thread.currentThread().interrupt();  // 恢复中断状态
-                        break;  // 退出循环
-                    } catch (Exception e) {
-                        // 处理处理订单时的其他异常
-                        log.error("处理订单失败，股票代码：{}", symbol, e);
-                    }
-                }
-            });
-
-            // 将执行器保存到map中
-            matchExecutors.put(symbol, executor);
-            log.info("已启动股票 {} 的撮合线程", symbol);
-        }
+            log.info("创建股票 {} 的撮合执行器", k);
+            return executor;
+        });
     }
 
     /**
      * 停止所有撮合线程
+     *
+     * <p>
+     * 在应用关闭时调用（@PreDestroy），优雅关闭所有执行器：
+     * <ol>
+     * <li>调用 shutdown() 停止接受新任务</li>
+     * <li>等待5秒让已提交的任务执行完成</li>
+     * <li>如果超时，调用 shutdownNow() 强制终止</li>
+     * </ol>
      */
     @PreDestroy
     public void shutdown() {
+        log.info("开始关闭所有撮合执行器，共 {} 个", matchExecutors.size());
+
         for (Map.Entry<String, ExecutorService> entry : matchExecutors.entrySet()) {
             String symbol = entry.getKey();
             ExecutorService executor = entry.getValue();
-            executor.shutdown();
+
+            executor.shutdown(); // 停止接受新任务
             try {
+                // 等待已提交的任务执行完成
                 if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+                    // 超时后强制终止
                     executor.shutdownNow();
+                    log.warn("股票 {} 的执行器超时强制关闭", symbol);
+                } else {
+                    log.info("股票 {} 的执行器已优雅关闭", symbol);
                 }
-                log.info("已停止股票 {} 的撮合线程", symbol);
             } catch (InterruptedException e) {
-                log.error("停止撮合线程失败，股票代码：{}", symbol, e);
                 executor.shutdownNow();
                 Thread.currentThread().interrupt();
+                log.error("关闭执行器被中断，股票代码：{}", symbol, e);
             }
         }
+
         matchExecutors.clear();
-        orderQueues.clear();
+        log.info("所有撮合执行器已关闭");
     }
 
     /**
-     * 订单处理器接口，由外部实现
+     * 获取活跃股票数量
+     *
+     * @return 当前有执行器的股票数量
+     */
+    public int getActiveSymbolCount() {
+        return matchExecutors.size();
+    }
+
+    /**
+     * 检查指定股票是否有活跃的执行器
+     *
+     * @param symbol 股票代码
+     * @return 是否有活跃执行器
+     */
+    public boolean hasActiveExecutor(String symbol) {
+        ExecutorService executor = matchExecutors.get(symbol);
+        return executor != null && !executor.isShutdown();
+    }
+
+    /**
+     * 订单处理器接口
+     *
+     * <p>
+     * 由 TradeServiceImpl 实现，定义订单处理的具体逻辑
      */
     public interface OrderProcessor {
+
+        /**
+         * 处理订单
+         *
+         * @param order 委托单
+         */
         void processOrder(TradeOrder order);
     }
 }

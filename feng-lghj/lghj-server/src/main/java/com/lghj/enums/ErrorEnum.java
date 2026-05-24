@@ -46,7 +46,6 @@ public enum ErrorEnum {
     BLOG_COMMENT_SAVE_FAIL(30008, "评论发表失败，请稍后再试"),
     BLOG_COMMENT_NOT_FOUND(30009, "评论不存在或已被禁用/删除"),
     BLOG_COMMENT_DELETE_FAIL(30010, "评论删除失败，请稍后再试"),
-    NO_FOLLOW_OTHERS(30011, "暂未关注任何用户"),
 
     // ====================== 股票数据管理（40000开头） ======================
     STOCK_QUERY_FAIL(40001, "获取股票数据失败"),
