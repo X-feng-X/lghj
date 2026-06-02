@@ -14,4 +14,11 @@ public class InvestmentTradeProfileMcpServerConfig {
                 .toolObjects(investmentTradeProfileMcpService)
                 .build();
     }
+
+    @Bean("marketRealtimeMcp")
+    public ToolCallbackProvider marketRealtimeMcp(MarketRealtimeMcpService marketRealtimeMcpService) {
+        return MethodToolCallbackProvider.builder()
+                .toolObjects(marketRealtimeMcpService)
+                .build();
+    }
 }

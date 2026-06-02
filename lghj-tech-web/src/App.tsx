@@ -591,6 +591,78 @@ function CommunityPage({ onNavigate, user }: { onNavigate: (page: Page) => void;
   );
 }
 
+function renderInlineMarkdown(text: string) {
+  const nodes: React.ReactNode[] = [];
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+
+  parts.forEach((part, index) => {
+    if (!part) return;
+    if (part.startsWith("**") && part.endsWith("**")) {
+      nodes.push(<strong key={`${part}-${index}`}>{part.slice(2, -2)}</strong>);
+    } else {
+      nodes.push(part);
+    }
+  });
+
+  return nodes;
+}
+
+function MarkdownMessage({ text }: { text: string }) {
+  const lines = text.split(/\r?\n/);
+  const blocks: React.ReactNode[] = [];
+  let listItems: string[] = [];
+
+  const flushList = () => {
+    if (listItems.length === 0) return;
+    blocks.push(
+      <ul key={`list-${blocks.length}`}>
+        {listItems.map((item, index) => <li key={`${item}-${index}`}>{renderInlineMarkdown(item)}</li>)}
+      </ul>,
+    );
+    listItems = [];
+  };
+
+  lines.forEach((rawLine, index) => {
+    const line = rawLine.trim();
+    if (!line) {
+      flushList();
+      return;
+    }
+
+    if (/^-{3,}$/.test(line)) {
+      flushList();
+      blocks.push(<hr key={`hr-${index}`} />);
+      return;
+    }
+
+    const heading = /^(#{1,4})\s+(.+)$/.exec(line);
+    if (heading) {
+      flushList();
+      const level = Math.min(heading[1].length, 4);
+      const content = renderInlineMarkdown(heading[2]);
+      if (level === 1) blocks.push(<h1 key={`heading-${index}`}>{content}</h1>);
+      if (level === 2) blocks.push(<h2 key={`heading-${index}`}>{content}</h2>);
+      if (level === 3) blocks.push(<h3 key={`heading-${index}`}>{content}</h3>);
+      if (level === 4) blocks.push(<h4 key={`heading-${index}`}>{content}</h4>);
+      return;
+    }
+
+    const unordered = /^[-*]\s+(.+)$/.exec(line);
+    const ordered = /^\d+[.)]\s+(.+)$/.exec(line);
+    if (unordered || ordered) {
+      listItems.push((unordered || ordered)![1]);
+      return;
+    }
+
+    flushList();
+    blocks.push(<p key={`p-${index}`}>{renderInlineMarkdown(line)}</p>);
+  });
+
+  flushList();
+
+  return <div className="markdown-message">{blocks}</div>;
+}
+
 function AdvisorPage({ onNavigate }: { onNavigate: (page: Page) => void }) {
   const [messages, setMessages] = useState(advisorChat);
   const [question, setQuestion] = useState("下一步先看啥？");
@@ -598,6 +670,7 @@ function AdvisorPage({ onNavigate }: { onNavigate: (page: Page) => void }) {
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState<Notice>({ type: "info", text: "这里会请求 8091 的 AI 智能投顾服务。" });
   const advisorUserId = getStoredUser()?.id ? String(getStoredUser()?.id) : "web-guest";
+  const casualQuestionPattern = /^(你好|您好|嗨|hi|hello|在吗|你是谁|你能做什么|能干嘛)[。！？!?\s]*$/i;
 
   const sendQuestion = async () => {
     const text = question.trim();
@@ -607,6 +680,19 @@ function AdvisorPage({ onNavigate }: { onNavigate: (page: Page) => void }) {
       ...current,
       { role: "user", text },
     ]);
+    if (casualQuestionPattern.test(text)) {
+      setMessages((current) => [
+        ...current,
+        {
+          role: "assistant",
+          text: "你好，我在。你可以问我持仓、交易记录、账户风险和复盘建议。",
+        },
+      ]);
+      setNotice({ type: "success", text: "已识别为闲聊，未触发投资分析。" });
+      setQuestion("");
+      setLoading(false);
+      return;
+    }
     try {
       let nextSessionId = sessionId;
       if (!nextSessionId) {
@@ -618,7 +704,7 @@ function AdvisorPage({ onNavigate }: { onNavigate: (page: Page) => void }) {
         agentId: "investment-advisor",
         userId: advisorUserId,
         sessionId: nextSessionId,
-        message: text,
+        message: `用户原始问题：${text}\n\n如果这只是问候或寒暄，只做简短回应，不要生成投资顾问分析报告。`,
       });
       setMessages((current) => [...current, { role: "assistant", text: reply.content || "AI 服务返回了空内容。" }]);
       setNotice({ type: "success", text: "AI 顾问已返回后端结果。" });
@@ -652,7 +738,10 @@ function AdvisorPage({ onNavigate }: { onNavigate: (page: Page) => void }) {
           <div className="advisor-avatar-large">{icon("solar:chat-round-like-bold-duotone")}</div>
           <div className="chat-stream">
             {messages.map((message, index) => (
-              <div className={`chat-bubble ${message.role}`} key={`${message.role}-${index}`}><span>{message.role === "user" ? "你" : "AI 顾问"}</span><p>{message.text}</p></div>
+              <div className={`chat-bubble ${message.role}`} key={`${message.role}-${index}`}>
+                <span>{message.role === "user" ? "你" : "AI 顾问"}</span>
+                {message.role === "assistant" ? <MarkdownMessage text={message.text} /> : <p>{message.text}</p>}
+              </div>
             ))}
           </div>
           <form className="chat-composer" onSubmit={submitQuestion}>

@@ -19,6 +19,8 @@ ai:
               tool-mcp-list:
                 - local:
                     name: investmentTradeProfileMcp
+                - local:
+                    name: marketRealtimeMcp
               tool-skills-list:
                 - type: resource
                   path: agent/skills/investment-research
@@ -28,12 +30,14 @@ ai:
                 instruction: |
                   你是市场分析师。根据用户提供的股票、行业或组合问题，分析宏观环境、行业趋势、公司基本面、估值线索和可能影响股价的公开事件。
                   不要承诺收益，不要给出保本或确定性预测。输出应包含主要驱动因素、利好/利空因素和需要继续观察的信息。
+                  当用户询问现在价格、实时行情、今日走势、最新资讯或涨跌幅时，必须调用 queryRealtimeMarket 工具；工具失败时明确说明行情数据缺口。
                 output-key: market_analysis
               - name: QuantTechnicalAgent
                 description: 分析价格、成交量、趋势、波动和技术风险。
                 instruction: |
                   你是量化与技术分析师。根据用户问题中的股票代码、价格区间、周期或交易目标，分析趋势、动量、成交量、波动率、支撑阻力和风险收益比。
                   如果缺少实时行情或历史数据，明确说明数据缺口，并给出应补充的数据字段。输出应避免确定性预测。
+                  做技术分析前，如果问题涉及“现在、今日、实时、最新价、涨跌幅”，必须先调用 queryRealtimeMarket 工具。
                 output-key: quant_technical_analysis
               - name: PersonalTradeProfileAgent
                 description: 查询并分析当前用户的模拟交易画像，用于个性化投资顾问服务。
