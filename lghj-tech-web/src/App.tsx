@@ -88,7 +88,7 @@ export default function App() {
       <Topbar page={page} user={user} onNavigate={openPage} onLogout={handleLogout} />
       <Ticker />
       {page === "home" && <HomePage onNavigate={openPage} />}
-      {page === "auth" && <AuthPage onLogin={handleLogin} />}
+      {page === "auth" && <AuthPage onLogin={(nextUser) => { handleLogin(nextUser); openPage("home"); }} />}
       {page === "trade" && <TradePage onNavigate={openPage} />}
       {page === "community" && <CommunityPage onNavigate={openPage} user={user} />}
       {page === "advisor" && <AdvisorPage onNavigate={openPage} />}
@@ -592,6 +592,28 @@ function CommunityPage({ onNavigate, user }: { onNavigate: (page: Page) => void;
 }
 
 function AdvisorPage({ onNavigate }: { onNavigate: (page: Page) => void }) {
+  const [messages, setMessages] = useState(advisorChat);
+  const [question, setQuestion] = useState("下一步先看啥？");
+
+  const sendQuestion = () => {
+    const text = question.trim();
+    if (!text) return;
+    setMessages((current) => [
+      ...current,
+      { role: "user", text },
+      {
+        role: "assistant",
+        text: "先看三件事：可用现金、未成交委托、单票仓位。别急着下单。",
+      },
+    ]);
+    setQuestion("");
+  };
+
+  const submitQuestion = (event: FormEvent) => {
+    event.preventDefault();
+    sendQuestion();
+  };
+
   return (
     <PageShell eyebrow="Advisor" title="AI 顾问" subtitle="先找问题，再给动作。">
       <div className="advisor-layout">
@@ -605,11 +627,14 @@ function AdvisorPage({ onNavigate }: { onNavigate: (page: Page) => void }) {
           <PanelTitle eyebrow="Conversation" title="顾问对话" iconName="solar:chat-round-like-bold-duotone" />
           <div className="advisor-avatar-large">{icon("solar:chat-round-like-bold-duotone")}</div>
           <div className="chat-stream">
-            {advisorChat.map((message, index) => (
+            {messages.map((message, index) => (
               <div className={`chat-bubble ${message.role}`} key={`${message.role}-${index}`}><span>{message.role === "user" ? "你" : "AI 顾问"}</span><p>{message.text}</p></div>
             ))}
           </div>
-          <div className="chat-composer"><input value="下一步先看啥？" readOnly aria-label="顾问问题输入框" /><button type="button">{icon("solar:plain-2-bold-duotone")}发送</button></div>
+          <form className="chat-composer" onSubmit={submitQuestion}>
+            <input value={question} onChange={(event) => setQuestion(event.target.value)} aria-label="顾问问题输入框" placeholder="输入你的问题" />
+            <button type="submit">{icon("solar:plain-2-bold-duotone")}发送</button>
+          </form>
         </section>
         <aside className="panel">
           <PanelTitle eyebrow="Action Board" title="观察清单" iconName="solar:checklist-minimalistic-bold-duotone" />
