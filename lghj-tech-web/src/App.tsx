@@ -594,19 +594,42 @@ function CommunityPage({ onNavigate, user }: { onNavigate: (page: Page) => void;
 function AdvisorPage({ onNavigate }: { onNavigate: (page: Page) => void }) {
   const [messages, setMessages] = useState(advisorChat);
   const [question, setQuestion] = useState("下一步先看啥？");
+  const [sessionId, setSessionId] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [notice, setNotice] = useState<Notice>({ type: "info", text: "这里会请求 8091 的 AI 智能投顾服务。" });
+  const advisorUserId = getStoredUser()?.id ? String(getStoredUser()?.id) : "web-guest";
 
-  const sendQuestion = () => {
+  const sendQuestion = async () => {
     const text = question.trim();
     if (!text) return;
+    setLoading(true);
     setMessages((current) => [
       ...current,
       { role: "user", text },
-      {
-        role: "assistant",
-        text: "先看三件事：可用现金、未成交委托、单票仓位。别急着下单。",
-      },
     ]);
-    setQuestion("");
+    try {
+      let nextSessionId = sessionId;
+      if (!nextSessionId) {
+        const session = await api.createAdvisorSession({ agentId: "investment-advisor", userId: advisorUserId });
+        nextSessionId = session.sessionId;
+        setSessionId(nextSessionId);
+      }
+      const reply = await api.chatAdvisor({
+        agentId: "investment-advisor",
+        userId: advisorUserId,
+        sessionId: nextSessionId,
+        message: text,
+      });
+      setMessages((current) => [...current, { role: "assistant", text: reply.content || "AI 服务返回了空内容。" }]);
+      setNotice({ type: "success", text: "AI 顾问已返回后端结果。" });
+    } catch (error) {
+      const errorText = getErrorText(error);
+      setMessages((current) => [...current, { role: "assistant", text: `AI 服务返回错误：${errorText}` }]);
+      setNotice({ type: "error", text: errorText });
+    } finally {
+      setQuestion("");
+      setLoading(false);
+    }
   };
 
   const submitQuestion = (event: FormEvent) => {
@@ -616,6 +639,7 @@ function AdvisorPage({ onNavigate }: { onNavigate: (page: Page) => void }) {
 
   return (
     <PageShell eyebrow="Advisor" title="AI 顾问" subtitle="先找问题，再给动作。">
+      <NoticeBar notice={notice} />
       <div className="advisor-layout">
         <aside className="panel">
           <PanelTitle eyebrow="Trading Profile" title="交易画像" iconName="solar:user-id-bold-duotone" />
@@ -633,7 +657,7 @@ function AdvisorPage({ onNavigate }: { onNavigate: (page: Page) => void }) {
           </div>
           <form className="chat-composer" onSubmit={submitQuestion}>
             <input value={question} onChange={(event) => setQuestion(event.target.value)} aria-label="顾问问题输入框" placeholder="输入你的问题" />
-            <button type="submit">{icon("solar:plain-2-bold-duotone")}发送</button>
+            <button type="submit" disabled={loading}>{icon("solar:plain-2-bold-duotone")}{loading ? "等待 AI" : "发送"}</button>
           </form>
         </section>
         <aside className="panel">

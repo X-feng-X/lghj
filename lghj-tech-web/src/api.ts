@@ -105,6 +105,27 @@ export type StockFollowDTO = {
   volume?: number;
 };
 
+export type AgentResponse<T = unknown> = {
+  code: string;
+  info: string;
+  data: T;
+};
+
+export type AdvisorChatPayload = {
+  agentId: string;
+  userId: string;
+  sessionId?: string;
+  message: string;
+};
+
+export type AdvisorChatDTO = {
+  content: string;
+};
+
+export type AdvisorSessionDTO = {
+  sessionId: string;
+};
+
 export class ApiError extends Error {
   status?: number;
 
@@ -149,6 +170,30 @@ async function request<T>(path: string, options: RequestInit = {}) {
   const result = (await response.json()) as ApiResult<T>;
   if (result.code !== 200) {
     throw new ApiError(result.msg || "接口返回失败");
+  }
+
+  return result.data;
+}
+
+async function requestAgent<T>(path: string, options: RequestInit = {}) {
+  const headers = new Headers(options.headers);
+
+  if (options.body && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  const response = await fetch(path, {
+    ...options,
+    headers,
+  });
+
+  if (!response.ok) {
+    throw new ApiError(`AI 服务请求失败：${response.status}`, response.status);
+  }
+
+  const result = (await response.json()) as AgentResponse<T>;
+  if (result.code !== "0000") {
+    throw new ApiError(result.info || "AI 服务返回失败");
   }
 
   return result.data;
@@ -201,4 +246,14 @@ export const api = {
   getOptionalStocks: () => request<StockFollowDTO[]>("/api/user/optional/list"),
   addOptionalStock: (symbol: string) => request(`/api/user/optional/add?${params({ symbol })}`, { method: "POST" }),
   removeOptionalStock: (symbol: string) => request(`/api/user/optional/remove?${params({ symbol })}`, { method: "POST" }),
+  chatAdvisor: (payload: AdvisorChatPayload) =>
+    requestAgent<AdvisorChatDTO>("/api/v1/chat", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  createAdvisorSession: (payload: { agentId: string; userId: string }) =>
+    requestAgent<AdvisorSessionDTO>("/api/v1/create_session", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
 };
