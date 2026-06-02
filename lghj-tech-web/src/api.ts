@@ -4,6 +4,24 @@ export type ApiResult<T = unknown> = {
   data: T;
 };
 
+export type LoginVO = {
+  token: string;
+  id: number;
+  username: string;
+  userType?: number;
+  identityDesc?: string;
+  state?: number;
+};
+
+export type RegisterPayload = {
+  username: string;
+  password: string;
+  nickName?: string;
+  email?: string;
+  phone?: string;
+  sex?: number;
+};
+
 export type SimAccountDTO = {
   id?: number;
   totalCash?: number;
@@ -57,6 +75,36 @@ export type BlogDTO = {
   createTime?: string;
 };
 
+export type BlogCommentDTO = {
+  id: number;
+  user?: {
+    id?: number;
+    nickname?: string;
+    avatar?: string;
+  };
+  parentId?: number;
+  content: string;
+  liked?: number;
+  isLiked?: number;
+  createTime?: string;
+  children?: BlogCommentDTO[];
+};
+
+export type PageResult<T> = {
+  total?: number;
+  records?: T[];
+  list?: T[];
+};
+
+export type StockFollowDTO = {
+  stockId?: number;
+  symbol: string;
+  name?: string;
+  price?: number;
+  changePercent?: number;
+  volume?: number;
+};
+
 export class ApiError extends Error {
   status?: number;
 
@@ -91,7 +139,7 @@ async function request<T>(path: string, options: RequestInit = {}) {
   });
 
   if (response.status === 401) {
-    throw new ApiError("需要先登录。请把登录 token 存到 localStorage.token。", 401);
+    throw new ApiError("需要先登录。请先登录或把 token 存到 localStorage.token。", 401);
   }
 
   if (!response.ok) {
@@ -106,13 +154,25 @@ async function request<T>(path: string, options: RequestInit = {}) {
   return result.data;
 }
 
-const params = (values: Record<string, string | number | boolean>) => {
+const params = (values: Record<string, string | number | boolean | undefined>) => {
   const search = new URLSearchParams();
-  Object.entries(values).forEach(([key, value]) => search.set(key, String(value)));
+  Object.entries(values).forEach(([key, value]) => {
+    if (value !== undefined && value !== "") search.set(key, String(value));
+  });
   return search.toString();
 };
 
 export const api = {
+  login: (payload: { username: string; password: string }) =>
+    request<LoginVO>("/api/login", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  register: (payload: RegisterPayload) =>
+    request("/api/register", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
   createAccount: () => request<SimAccountDTO>("/api/user/account/create", { method: "POST" }),
   getAccount: () => request<SimAccountDTO>("/api/user/account/query_info"),
   getPositions: () => request<PositionDTO[]>("/api/user/account/query_positions"),
@@ -128,4 +188,17 @@ export const api = {
       body: JSON.stringify({ ...payload, liked: 0, comments: 0, status: 1 }),
     }),
   likeBlog: (id: number) => request(`/api/user/blog/like/${id}`, { method: "PUT" }),
+  followUser: (id: number, isFollow: boolean) => request(`/api/user/follow/${id}/${isFollow}`, { method: "PUT" }),
+  getComments: (blogId: number) =>
+    request<PageResult<BlogCommentDTO> | BlogCommentDTO[]>(`/api/user/blog/comments/list?${params({ blogId, pageNum: 1, pageSize: 20 })}`),
+  addComment: (payload: { blogId: number; parentId?: number; content: string }) =>
+    request("/api/user/blog/comments/add", {
+      method: "POST",
+      body: JSON.stringify({ parentId: 0, ...payload }),
+    }),
+  likeComment: (commentId: number) => request(`/api/user/blog/comments/like/${commentId}`, { method: "POST" }),
+  deleteComment: (commentId: number) => request(`/api/user/blog/comments/delete/${commentId}`, { method: "DELETE" }),
+  getOptionalStocks: () => request<StockFollowDTO[]>("/api/user/optional/list"),
+  addOptionalStock: (symbol: string) => request(`/api/user/optional/add?${params({ symbol })}`, { method: "POST" }),
+  removeOptionalStock: (symbol: string) => request(`/api/user/optional/remove?${params({ symbol })}`, { method: "POST" }),
 };
