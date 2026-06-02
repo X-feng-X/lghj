@@ -71,6 +71,8 @@ public class RunnerNode extends AbstractArmorySupport {
         // 加载回调
         List<BasePlugin> plugins;
         List<String> pluginNameList = runnerConfig.getPluginNameList();
+
+        // 如果配置了插件名称，则遍历加载插件实例
         if (null != pluginNameList && !pluginNameList.isEmpty()) {
             plugins = new ArrayList<>();
             for (String pluginName : pluginNameList) {
