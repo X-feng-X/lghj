@@ -39,7 +39,7 @@ export const account = {
   availableCash: 51370,
   frozenCash: 100,
   riskScore: 71,
-  riskLabel: "仓位太挤",
+  riskLabel: "仓位偏集中",
 };
 
 export const positions = [
@@ -59,11 +59,7 @@ export const deals = [
 export const advisorMessage = {
   title: "先别急着冲",
   risk: "账户只抱一只票。买单还在排队。先把刹车装上。",
-  suggestions: [
-    "先看两张 1 元挂单。",
-    "单票别超过 50%。",
-    "给 600519 画止损线。",
-  ],
+  suggestions: ["先看两张 1 元挂单。", "单票别超过 50%。", "给 600519 画止损线。"],
 };
 
 export const advisorChat = [
@@ -77,7 +73,7 @@ export const advisorChat = [
   },
   {
     role: "assistant",
-    text: "先撤怪单。再设止损。最后再谈加仓。",
+    text: "先撤异常单。再设止损。最后再谈加仓。",
   },
 ];
 
@@ -87,15 +83,10 @@ export const advisorTasks = [
   { label: "组合建议", value: "补两类资产", level: 62 },
 ];
 
-export const marketNews = [
-  "银行板块放量。",
-  "白酒午后缩量。",
-  "高股息又热了。",
-  "AI 提醒先看仓位。",
-];
+export const marketNews = ["银行板块放量。", "白酒午后缩量。", "高股息又热了。", "AI 提醒先看仓位。"];
 
 export const communityPosts = [
-  { author: "量化老王", title: "别把模拟盘当许愿池", heat: 128 },
-  { author: "趋势猎手", title: "白酒反弹别上头", heat: 96 },
-  { author: "风控笔记", title: "1 元挂单很刺眼", heat: 84 },
+  { id: 1, author: "量化老王", title: "别把模拟盘当许愿池", context: "先看仓位，再看收益。", heat: 128 },
+  { id: 2, author: "趋势猎手", title: "白酒反弹别上头", context: "缩量反弹要轻一点。", heat: 96 },
+  { id: 3, author: "风控笔记", title: "1 元挂单很刺眼", context: "测试单也要及时撤。", heat: 84 },
 ];

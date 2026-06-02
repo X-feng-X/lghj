@@ -41,6 +41,12 @@ button {
   border: 0;
 }
 
+button:disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.55);
+  opacity: 0.58;
+}
+
 .app-shell {
   position: relative;
   min-height: 100vh;
@@ -361,7 +367,11 @@ button {
 .feature-card button,
 .page-cta,
 .accent-panel button,
-.chat-composer button {
+.chat-composer button,
+.trade-form button,
+.post-form button,
+.post-card button,
+.action-row button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -384,7 +394,11 @@ button {
 .feature-card button:hover,
 .page-cta:hover,
 .accent-panel button:hover,
-.chat-composer button:hover {
+.chat-composer button:hover,
+.trade-form button:hover,
+.post-form button:hover,
+.post-card button:hover,
+.action-row button:hover {
   transform: translateY(-2px);
   background: linear-gradient(135deg, #8ff7ff, #ff9c7a);
   box-shadow: 0 14px 34px rgba(85, 243, 255, 0.22);
@@ -707,9 +721,148 @@ button {
   width: fit-content;
 }
 
+.page-cta.subtle {
+  color: var(--text);
+  background: rgba(233, 238, 185, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(233, 238, 185, 0.24);
+}
+
 .page-cta.full {
   width: 100%;
   margin-top: 16px;
+}
+
+.toolbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.notice-bar {
+  position: relative;
+  z-index: 1;
+  padding: 14px 16px;
+  border: 1px solid rgba(233, 238, 185, 0.2);
+  border-radius: 8px;
+  background: rgba(8, 23, 30, 0.58);
+  color: #d9e4d7;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(20px);
+}
+
+.notice-bar.success {
+  border-color: rgba(114, 245, 164, 0.42);
+  color: #a8ffc5;
+}
+
+.notice-bar.error {
+  border-color: rgba(255, 143, 112, 0.48);
+  color: #ffc0ae;
+}
+
+.trade-layout {
+  align-items: start;
+}
+
+.trade-form,
+.post-form {
+  display: grid;
+  gap: 14px;
+}
+
+.trade-form {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.trade-form label,
+.post-form label {
+  display: grid;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.trade-form input,
+.trade-form select,
+.post-form input,
+.post-form textarea {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 13px;
+  border: 1px solid rgba(233, 238, 185, 0.2);
+  border-radius: 8px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.08);
+  outline: none;
+}
+
+.trade-form select option {
+  color: #071116;
+}
+
+.post-form textarea {
+  min-height: 150px;
+  padding: 12px 13px;
+  resize: vertical;
+}
+
+.trade-form input:focus,
+.trade-form select:focus,
+.post-form input:focus,
+.post-form textarea:focus {
+  border-color: rgba(85, 243, 255, 0.56);
+  box-shadow: 0 0 0 3px rgba(85, 243, 255, 0.12);
+}
+
+.trade-form button,
+.post-form button {
+  grid-column: 1 / -1;
+}
+
+.action-row {
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+}
+
+.action-row button,
+.post-card button {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+.post-list {
+  display: grid;
+  gap: 10px;
+}
+
+.rich-post {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  padding: 14px 0;
+}
+
+.rich-post p {
+  margin: 8px 0 0;
+  color: #c8d8d2;
+  line-height: 1.6;
+}
+
+.rich-post button {
+  color: var(--ink);
+}
+
+.advisor-avatar-large {
+  display: grid;
+  place-items: center;
+  width: 74px;
+  height: 74px;
+  margin: 0 0 16px;
+  border-radius: 8px;
+  color: var(--ink);
+  font-size: 36px;
+  background: linear-gradient(135deg, var(--cyan), var(--lime), var(--coral));
+  box-shadow: 0 0 34px rgba(85, 243, 255, 0.24);
 }
 
 .community-layout,
@@ -1010,9 +1163,12 @@ button {
 
   .asset-visual,
   .chat-composer,
+  .trade-form,
   .data-row,
+  .action-row,
   .heat-row,
-  .post-card {
+  .post-card,
+  .rich-post {
     grid-template-columns: 1fr;
     align-items: start;
   }
