@@ -55,7 +55,9 @@
                         <el-dropdown trigger="click" @command="handleCommand">
                             <span class="el-dropdown-link">
                                 {{ userStore.userInfo.username || '管理员' }}
-                                <el-icon class="el-icon--right"><arrow-down /></el-icon>
+                                <el-icon class="el-icon--right">
+                                    <ArrowDown />
+                                </el-icon>
                             </span>
                             <template #dropdown>
                                 <el-dropdown-menu>
