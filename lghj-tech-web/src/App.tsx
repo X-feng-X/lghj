@@ -12,10 +12,8 @@ import {
   TradeDealDTO,
   TradeOrderDTO,
 } from "./api";
-import { MetricCard } from "./components/MetricCard";
 import { Sparkline } from "./components/Sparkline";
 import {
-  account as mockAccount,
   advisorChat,
   advisorMessage,
   advisorTasks,
@@ -29,20 +27,16 @@ import {
   watchlist,
 } from "./data/mock";
 
-const formatMoney = (value: number) =>
-  new Intl.NumberFormat("zh-CN", { style: "currency", currency: "CNY", maximumFractionDigits: 0 }).format(value || 0);
-
-type Page = "home" | "auth" | "trade" | "community" | "advisor" | "news";
+type Page = "home" | "market" | "advisor" | "optional" | "community" | "news" | "trade" | "auth";
 type Notice = { type: "success" | "error" | "info"; text: string };
 type OrderRow = { left: string; meta: string; middle: string; right: string; id?: number; canCancel?: boolean };
 
+const protectedPages = new Set<Page>(["advisor", "optional", "community", "news", "trade"]);
 const icon = (name: string) => <Icon icon={name} aria-hidden="true" />;
 const toNumber = (value: unknown, fallback = 0) => Number(value ?? fallback) || fallback;
-const orderStatus = (status?: number) => {
-  const map: Record<number, string> = { 1: "待成交", 2: "部分成交", 3: "已成交", 4: "已撤销" };
-  return status ? map[status] || `状态 ${status}` : "待处理";
-};
-const directionLabel = (direction?: number) => (direction === 2 ? "卖出" : "买入");
+const formatMoney = (value: number) =>
+  new Intl.NumberFormat("zh-CN", { style: "currency", currency: "CNY", maximumFractionDigits: 0 }).format(value || 0);
+
 const getStoredUser = (): LoginVO | null => {
   const raw = localStorage.getItem("lghj_user");
   if (!raw) return null;
@@ -59,11 +53,24 @@ function getErrorText(error: unknown) {
   return "操作失败，请稍后再试。";
 }
 
+const directionLabel = (direction?: number) => (direction === 2 ? "卖出" : "买入");
+const orderStatus = (status?: number) => {
+  const map: Record<number, string> = { 1: "待成交", 2: "部分成交", 3: "已成交", 4: "已撤销" };
+  return status ? map[status] || `状态 ${status}` : "待处理";
+};
+
 export default function App() {
   const [page, setPage] = useState<Page>("home");
   const [user, setUser] = useState<LoginVO | null>(() => getStoredUser());
+  const [loginHint, setLoginHint] = useState("登录后才能访问交易、社区、自选股和 AI 顾问。");
 
   const openPage = (nextPage: Page) => {
+    if (protectedPages.has(nextPage) && !user) {
+      setLoginHint("这个功能需要先登录。登录后自动回到系统。");
+      setPage("auth");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
     setPage(nextPage);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -72,6 +79,7 @@ export default function App() {
     localStorage.setItem("token", nextUser.token);
     localStorage.setItem("lghj_user", JSON.stringify(nextUser));
     setUser(nextUser);
+    setPage("home");
   };
 
   const handleLogout = () => {
@@ -80,58 +88,60 @@ export default function App() {
     localStorage.removeItem("userToken");
     localStorage.removeItem("lghj_user");
     setUser(null);
+    setPage("home");
   };
 
   return (
-    <main className="app-shell">
-      <div className="soft-noise" />
+    <main className="terminal-shell">
+      <div className="grid-field" />
       <Topbar page={page} user={user} onNavigate={openPage} onLogout={handleLogout} />
-      <Ticker />
+      {page !== "auth" && <Ticker />}
       {page === "home" && <HomePage onNavigate={openPage} />}
-      {page === "auth" && <AuthPage onLogin={(nextUser) => { handleLogin(nextUser); openPage("home"); }} />}
-      {page === "trade" && <TradePage onNavigate={openPage} />}
+      {page === "market" && <MarketPage onNavigate={openPage} />}
+      {page === "advisor" && <AdvisorPage onNavigate={openPage} user={user} />}
+      {page === "optional" && <OptionalPage onNavigate={openPage} />}
       {page === "community" && <CommunityPage onNavigate={openPage} user={user} />}
-      {page === "advisor" && <AdvisorPage onNavigate={openPage} />}
       {page === "news" && <NewsPage onNavigate={openPage} />}
+      {page === "trade" && <TradePage onNavigate={openPage} />}
+      {page === "auth" && <AuthPage hint={loginHint} onLogin={handleLogin} />}
     </main>
   );
 }
 
 function Topbar({ page, user, onNavigate, onLogout }: { page: Page; user: LoginVO | null; onNavigate: (page: Page) => void; onLogout: () => void }) {
-  const navItems: Array<{ page: Page; label: string }> = [
-    { page: "home", label: "总览" },
-    { page: "trade", label: "模拟交易" },
-    { page: "community", label: "社区" },
-    { page: "advisor", label: "AI 顾问" },
-    { page: "news", label: "资讯" },
+  const navItems: Array<{ page: Page; label: string; protected?: boolean }> = [
+    { page: "home", label: "首页" },
+    { page: "market", label: "行情中心" },
+    { page: "advisor", label: "智能预测", protected: true },
+    { page: "optional", label: "自选股", protected: true },
+    { page: "community", label: "股友社区", protected: true },
+    { page: "news", label: "财经资讯", protected: true },
+    { page: "trade", label: "模拟交易", protected: true },
   ];
 
   return (
     <header className="topbar">
       <button className="brand" type="button" onClick={() => onNavigate("home")}>
         <span className="brand-mark">{icon("solar:chart-square-bold-duotone")}</span>
-        <span>
-          <small>量股化金</small>
-          <strong>把交易讲清楚</strong>
-        </span>
+        <strong>量股化金</strong>
       </button>
-
       <nav className="nav-tabs" aria-label="主导航">
         {navItems.map((item) => (
           <button className={page === item.page ? "active" : ""} key={item.page} type="button" onClick={() => onNavigate(item.page)}>
             {item.label}
+            {item.protected && !user && <i />}
           </button>
         ))}
       </nav>
-
-      <div className="auth-status">
+      <div className="top-actions">
+        <div className="search-box">{icon("solar:magnifer-bold")}<input placeholder="搜索股票/代码" /></div>
         {user ? (
-          <>
-            <span>{user.username}</span>
-            <button type="button" onClick={onLogout}>退出</button>
-          </>
+          <button className="user-chip" type="button" onClick={onLogout}>
+            {icon("solar:user-circle-bold-duotone")}
+            {user.username}
+          </button>
         ) : (
-          <button type="button" onClick={() => onNavigate("auth")}>登录 / 注册</button>
+          <button className="login-chip" type="button" onClick={() => onNavigate("auth")}>登录</button>
         )}
       </div>
     </header>
@@ -140,7 +150,7 @@ function Topbar({ page, user, onNavigate, onLogout }: { page: Page; user: LoginV
 
 function Ticker() {
   return (
-    <section className="ticker" aria-label="实时行情">
+    <section className="ticker">
       <div className="ticker-track">
         {tickerItems.concat(tickerItems).map((item, index) => (
           <span key={`${item.id}-${index}`} className={item.change.startsWith("+") ? "up" : "down"}>
@@ -154,63 +164,80 @@ function Ticker() {
 
 function HomePage({ onNavigate }: { onNavigate: (page: Page) => void }) {
   return (
-    <div className="page-flow">
-      <section className="hero-section">
-        <div className="hero-copy">
-          <span className="eyebrow">AI Trading Console</span>
-          <h1>看清仓位，再做决定。</h1>
-          <p>行情很吵。账户要稳。</p>
-          <div className="hero-actions">
-            <button type="button" onClick={() => onNavigate("trade")}>{icon("solar:wallet-money-bold-duotone")}进入模拟交易</button>
-            <button className="ghost" type="button" onClick={() => onNavigate("advisor")}>{icon("solar:chat-round-like-bold-duotone")}问 AI 顾问</button>
+    <div className="screen-grid">
+      <section className="index-strip">
+        {marketIndexes.slice(0, 3).map((item, index) => (
+          <article className="glass-card index-tile" key={item.code}>
+            <span>{item.name}</span>
+            <strong>{["3,350.12", "10,580.33", "2,120.66"][index]}</strong>
+            <em className={item.trend}>{item.change}</em>
+          </article>
+        ))}
+      </section>
+
+      <section className="glass-card chart-panel">
+        <PanelHeader title="上证指数" action="日K" />
+        <div className="chart-stage">
+          <Sparkline points={[22, 30, 25, 38, 34, 48, 39, 42, 36, 54, 49, 60, 58]} color="#53d4ff" />
+          <div className="candle-grid">
+            {Array.from({ length: 46 }).map((_, index) => <i key={index} style={{ height: `${18 + ((index * 17) % 76)}%` }} />)}
+          </div>
+          <div className="chart-tip">
+            <b>2026-06-10</b>
+            <span>open 3350.12</span>
+            <span>MA20 3376.40</span>
           </div>
         </div>
-
-        <div className="hero-board">
-          <div className="risk-score"><span>{mockAccount.riskScore}</span><small>风险分</small></div>
-          <div><strong>{formatMoney(mockAccount.totalAsset)}</strong><p>总资产</p></div>
-          <div className="hero-note"><b>{advisorMessage.title}</b><p>{advisorMessage.risk}</p></div>
-        </div>
       </section>
 
-      <section className="section-block snap-block">
-        <SectionTitle eyebrow="Scroll 01" title="市场先落地" action="看资讯" onClick={() => onNavigate("news")} />
-        <div className="index-grid">
-          {marketIndexes.map((item, index) => (
-            <article className="index-card" key={item.code}>
-              <div><strong>{item.name}</strong><span>{item.code}</span></div>
-              <Sparkline points={[12 + index, 18, 14 + index, 24, 22 + index, 31, 28 + index]} color={item.trend === "up" ? "#72f5a4" : "#ff8f70"} />
-              <b className={item.trend}>{item.change}</b>
-            </article>
+      <aside className="side-stack">
+        <section className="glass-card">
+          <PanelHeader title="自选股" action="更多" />
+          {watchlist.slice(0, 4).map((stock) => (
+            <DataLine key={stock.symbol} title={stock.name} meta={stock.symbol} value={stock.change} tone={stock.change.startsWith("+") ? "up" : "down"} />
           ))}
-        </div>
-      </section>
-
-      <section className="section-block snap-block">
-        <SectionTitle eyebrow="Scroll 02" title="四个入口，分开看" />
-        <div className="feature-grid">
-          <FeatureCard iconName="solar:wallet-money-bold-duotone" title="模拟交易" text="开户、买卖、撤单。" buttonText="打开交易页" onClick={() => onNavigate("trade")} />
-          <FeatureCard iconName="solar:users-group-rounded-bold-duotone" title="社区" text="发帖、点赞、评论。" buttonText="打开社区页" onClick={() => onNavigate("community")} />
-          <FeatureCard iconName="solar:chat-round-like-bold-duotone" title="AI 顾问" text="先挑错，再建议。" buttonText="打开顾问页" onClick={() => onNavigate("advisor")} />
-          <FeatureCard iconName="solar:document-text-bold-duotone" title="资讯" text="自选股和市场消息。" buttonText="打开资讯页" onClick={() => onNavigate("news")} />
-        </div>
-      </section>
-
-      <section className="section-block snap-block">
-        <SectionTitle eyebrow="Scroll 03" title="账户摘要" action="去交易页" onClick={() => onNavigate("trade")} />
-        <div className="metric-grid">
-          <MetricCard label="总资产" value={formatMoney(mockAccount.totalAsset)} hint="模拟账户净值" icon={icon("solar:wallet-money-bold-duotone")} tone="cyan" />
-          <MetricCard label="可用现金" value={formatMoney(mockAccount.availableCash)} hint={`冻结 ${formatMoney(mockAccount.frozenCash)}`} icon={icon("solar:cash-out-bold-duotone")} tone="green" />
-          <MetricCard label="风险分" value={`${mockAccount.riskScore}/100`} hint={mockAccount.riskLabel} icon={icon("solar:shield-warning-bold-duotone")} tone="amber" />
-        </div>
-      </section>
+        </section>
+        <section className="glass-card">
+          <PanelHeader title="最新资讯" action="更多" />
+          {marketNews.slice(0, 6).map((news) => <NewsLine key={news} title={news} />)}
+        </section>
+        <button className="advisor-launch" type="button" onClick={() => onNavigate("advisor")}>
+          {icon("solar:chat-round-like-bold-duotone")}
+          找 AI 投资顾问
+        </button>
+      </aside>
     </div>
   );
 }
 
-function AuthPage({ onLogin }: { onLogin: (user: LoginVO) => void }) {
+function MarketPage({ onNavigate }: { onNavigate: (page: Page) => void }) {
+  return (
+    <PageFrame title="行情中心" subtitle="别盯一只票发呆。先看市场温度。">
+      <section className="market-layout">
+        <div className="glass-card chart-panel big">
+          <PanelHeader title="京东方 A（000725）" action="周K" />
+          <div className="chart-stage tall">
+            <Sparkline points={[18, 24, 21, 32, 29, 48, 36, 39, 31, 46, 42, 58, 51, 64]} color="#53d4ff" />
+            <div className="candle-grid">
+              {Array.from({ length: 64 }).map((_, index) => <i key={index} style={{ height: `${14 + ((index * 13) % 78)}%` }} />)}
+            </div>
+          </div>
+        </div>
+        <aside className="side-stack">
+          <section className="glass-card">
+            <PanelHeader title="板块热度" />
+            {["算力 +2.8%", "白酒 -0.4%", "半导体 +1.3%", "新能源 +0.7%"].map((item) => <DataLine key={item} title={item} meta="实时热度" value="追踪" tone="up" />)}
+          </section>
+          <button className="advisor-launch" type="button" onClick={() => onNavigate("advisor")}>让 AI 解读行情</button>
+        </aside>
+      </section>
+    </PageFrame>
+  );
+}
+
+function AuthPage({ hint, onLogin }: { hint: string; onLogin: (user: LoginVO) => void }) {
   const [mode, setMode] = useState<"login" | "register">("login");
-  const [notice, setNotice] = useState<Notice>({ type: "info", text: "登录后会自动保存 token，用于交易、发帖、点赞和关注。" });
+  const [notice, setNotice] = useState<Notice>({ type: "info", text: hint });
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ username: "zhangsan", password: "123456", nickName: "", email: "", phone: "" });
 
@@ -231,7 +258,6 @@ function AuthPage({ onLogin }: { onLogin: (user: LoginVO) => void }) {
       } else {
         const nextUser = await api.login({ username: form.username.trim(), password: form.password });
         onLogin(nextUser);
-        setNotice({ type: "success", text: "登录成功，token 已保存。" });
       }
     } catch (error) {
       setNotice({ type: "error", text: getErrorText(error) });
@@ -241,27 +267,33 @@ function AuthPage({ onLogin }: { onLogin: (user: LoginVO) => void }) {
   };
 
   return (
-    <PageShell eyebrow="Account" title="登录 / 注册" subtitle="先拿到 token，再操作交易和社区。">
-      <NoticeBar notice={notice} />
-      <section className="panel auth-panel">
+    <section className="login-screen">
+      <div className="login-copy">
+        <div className="login-logo">{icon("solar:chart-square-bold-duotone")}<span>Stock Prediction</span></div>
+        <h1>股市预测系统</h1>
+        <p>先登录。再交易。</p>
+        <p>没有 token，就别硬闯。</p>
+        <div className="red-module">智能决策系统<span>支持全生命周期风险决策</span></div>
+      </div>
+      <form className="login-card" onSubmit={submit}>
+        <h2>{mode === "login" ? "登录 Stock Prediction" : "注册 Stock Prediction"}</h2>
+        <NoticeBar notice={notice} />
         <div className="segmented">
           <button className={mode === "login" ? "active" : ""} type="button" onClick={() => setMode("login")}>登录</button>
           <button className={mode === "register" ? "active" : ""} type="button" onClick={() => setMode("register")}>注册</button>
         </div>
-        <form className="post-form auth-form" onSubmit={submit}>
-          <label>用户名<input value={form.username} onChange={(event) => setForm({ ...form, username: event.target.value })} required /></label>
-          <label>密码<input type="password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} required /></label>
-          {mode === "register" && (
-            <>
-              <label>昵称<input value={form.nickName} onChange={(event) => setForm({ ...form, nickName: event.target.value })} /></label>
-              <label>邮箱<input value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} /></label>
-              <label>手机号<input value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} /></label>
-            </>
-          )}
-          <button type="submit" disabled={loading}>{icon("solar:key-minimalistic-bold-duotone")}{mode === "login" ? "登录并保存 token" : "创建账号"}</button>
-        </form>
-      </section>
-    </PageShell>
+        <label>用户名<input value={form.username} onChange={(event) => setForm({ ...form, username: event.target.value })} required /></label>
+        <label>密码<input type="password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} required /></label>
+        {mode === "register" && (
+          <>
+            <label>昵称<input value={form.nickName} onChange={(event) => setForm({ ...form, nickName: event.target.value })} /></label>
+            <label>邮箱<input value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} /></label>
+            <label>手机<input value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} /></label>
+          </>
+        )}
+        <button className="primary-btn" type="submit" disabled={loading}>{loading ? "处理中" : mode === "login" ? "登录" : "创建账号"}</button>
+      </form>
+    </section>
   );
 }
 
@@ -270,15 +302,9 @@ function TradePage({ onNavigate }: { onNavigate: (page: Page) => void }) {
   const [positionList, setPositionList] = useState<PositionDTO[]>([]);
   const [orderList, setOrderList] = useState<TradeOrderDTO[]>([]);
   const [dealList, setDealList] = useState<TradeDealDTO[]>([]);
-  const [notice, setNotice] = useState<Notice>({ type: "info", text: "登录后可直接调用后端模拟交易接口。" });
+  const [notice, setNotice] = useState<Notice>({ type: "info", text: "这里会连接后端模拟交易接口。" });
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ symbol: "600519", direction: "1", price: "1485.3", quantity: "100" });
-
-  const summary = useMemo(() => ({
-    totalAsset: toNumber(accountInfo?.totalAsset, mockAccount.totalAsset),
-    availableCash: toNumber(accountInfo?.availableCash, mockAccount.availableCash),
-    frozenCash: toNumber(accountInfo?.frozenCash, mockAccount.frozenCash),
-  }), [accountInfo]);
 
   const refreshTrade = async () => {
     setLoading(true);
@@ -300,11 +326,16 @@ function TradePage({ onNavigate }: { onNavigate: (page: Page) => void }) {
     refreshTrade();
   }, []);
 
+  const summary = useMemo(() => ({
+    totalAsset: toNumber(accountInfo?.totalAsset, 200000),
+    availableCash: toNumber(accountInfo?.availableCash, 38009),
+    frozenCash: toNumber(accountInfo?.frozenCash, 0),
+  }), [accountInfo]);
+
   const createAccount = async () => {
     setLoading(true);
     try {
-      const nextAccount = await api.createAccount();
-      setAccountInfo(nextAccount);
+      setAccountInfo(await api.createAccount());
       setNotice({ type: "success", text: "模拟账户已开通。" });
       await refreshTrade();
     } catch (error) {
@@ -342,83 +373,154 @@ function TradePage({ onNavigate }: { onNavigate: (page: Page) => void }) {
     }
   };
 
-  const rows = positionList.length > 0
-    ? positionList.map((position) => ({ left: position.symbol, meta: `可用 ${position.availableQuantity ?? 0}`, middle: `${position.totalQuantity ?? 0} 股`, right: formatMoney(toNumber(position.costPrice)) }))
-    : mockPositions.map((position) => ({ left: position.name, meta: position.symbol, middle: `${position.quantity} 股`, right: position.risk }));
-
-  const orderRows: OrderRow[] = orderList.length > 0
-    ? orderList.map((order) => ({ left: order.symbol, meta: directionLabel(order.direction), middle: `${order.quantity} 股 / ${formatMoney(order.price)}`, right: orderStatus(order.status), id: order.id, canCancel: order.status === 1 || order.status === 2 }))
+  const positions = positionList.length > 0 ? positionList : mockPositions.map((item) => ({ symbol: item.symbol, totalQuantity: item.quantity, costPrice: item.cost, profitLoss: 0 }));
+  const orders: OrderRow[] = orderList.length > 0
+    ? orderList.map((order) => ({ left: order.symbol, meta: directionLabel(order.direction), middle: `${order.quantity} 股`, right: orderStatus(order.status), id: order.id, canCancel: order.status === 1 || order.status === 2 }))
     : mockOrders.map((order) => ({ left: order.name, meta: order.side, middle: order.symbol, right: order.status }));
-
-  const dealRows = dealList.length > 0
-    ? dealList.map((deal) => ({ left: deal.symbol, meta: deal.createTime || directionLabel(deal.direction), middle: directionLabel(deal.direction), right: formatMoney(toNumber(deal.price)) }))
-    : mockDeals.map((deal) => ({ left: deal.name, meta: deal.time, middle: deal.side, right: formatMoney(deal.price) }));
+  const deals = dealList.length > 0 ? dealList : mockDeals.map((deal) => ({ symbol: deal.symbol, direction: deal.side === "卖出" ? 2 : 1, price: deal.price, quantity: 100, createTime: deal.time }));
 
   return (
-    <PageShell eyebrow="Simulation" title="模拟交易" subtitle="开户、买入、卖出、撤单，都在这里。">
+    <PageFrame title="模拟交易" subtitle="开户、买入、卖出、撤单，都在这一屏。">
       <NoticeBar notice={notice} />
-      <div className="toolbar-row">
-        <button className="page-cta" type="button" onClick={createAccount} disabled={loading}>{icon("solar:user-plus-rounded-bold-duotone")}开通模拟账户</button>
-        <button className="page-cta subtle" type="button" onClick={refreshTrade} disabled={loading}>{icon("solar:refresh-bold-duotone")}刷新交易数据</button>
-      </div>
-      <div className="metric-grid">
-        <MetricCard label="总资产" value={formatMoney(summary.totalAsset)} hint="后端账户总资产" icon={icon("solar:wallet-money-bold-duotone")} />
-        <MetricCard label="可用现金" value={formatMoney(summary.availableCash)} hint={`冻结 ${formatMoney(summary.frozenCash)}`} icon={icon("solar:cash-out-bold-duotone")} />
-        <MetricCard label="订单数" value={`${orderList.length || mockOrders.length}`} hint="当前委托记录" icon={icon("solar:clipboard-list-bold-duotone")} />
-      </div>
-      <div className="two-column trade-layout">
-        <section className="panel">
-          <PanelTitle eyebrow="Order Ticket" title="买卖股票" iconName="solar:cart-large-2-bold-duotone" />
-          <form className="trade-form" onSubmit={submitOrder}>
-            <label>股票代码<input value={form.symbol} onChange={(event) => setForm({ ...form, symbol: event.target.value })} placeholder="600519" /></label>
-            <label>方向<select value={form.direction} onChange={(event) => setForm({ ...form, direction: event.target.value })}><option value="1">买入</option><option value="2">卖出</option></select></label>
-            <label>委托价格<input type="number" min="0" step="0.01" value={form.price} onChange={(event) => setForm({ ...form, price: event.target.value })} /></label>
-            <label>数量<input type="number" min="1" step="1" value={form.quantity} onChange={(event) => setForm({ ...form, quantity: event.target.value })} /></label>
-            <button type="submit" disabled={loading}>{icon(form.direction === "1" ? "solar:round-arrow-up-bold-duotone" : "solar:round-arrow-down-bold-duotone")}提交委托</button>
-          </form>
-        </section>
-        <section className="panel"><PanelTitle eyebrow="Portfolio" title="持仓" iconName="solar:pie-chart-2-bold-duotone" /><DataRows rows={rows} /></section>
-      </div>
-      <div className="two-column">
-        <section className="panel">
-          <PanelTitle eyebrow="Orders" title="订单流" iconName="solar:clipboard-list-bold-duotone" />
-          <div className="data-rows">
-            {orderRows.map((row) => (
-              <div className="data-row action-row" key={`${row.left}-${row.meta}-${row.right}-${row.id || ""}`}>
-                <div><strong>{row.left}</strong><span>{row.meta}</span></div>
-                <span>{row.middle}</span>
-                <b>{row.right}</b>
-                {row.canCancel && <button type="button" onClick={() => cancelOrder(row.id)} disabled={loading}>撤单</button>}
-              </div>
-            ))}
+      <section className="glass-card account-strip">
+        <PanelHeader title="我的模拟账户" action="刷新" onAction={refreshTrade} />
+        <MetricTriplet values={[["总资产", formatMoney(summary.totalAsset)], ["可用资金", formatMoney(summary.availableCash)], ["冻结资金", formatMoney(summary.frozenCash)]]} />
+        <button className="small-action" type="button" onClick={createAccount} disabled={loading}>开户</button>
+      </section>
+      <section className="trade-grid">
+        <form className="glass-card ticket-card" onSubmit={submitOrder}>
+          <PanelHeader title="买卖股票" />
+          <div className="segmented wide">
+            <button className={form.direction === "1" ? "active" : ""} type="button" onClick={() => setForm({ ...form, direction: "1" })}>买入</button>
+            <button className={form.direction === "2" ? "active" : ""} type="button" onClick={() => setForm({ ...form, direction: "2" })}>卖出</button>
           </div>
+          <label>股票代码<input value={form.symbol} onChange={(event) => setForm({ ...form, symbol: event.target.value })} /></label>
+          <label>委托价格<input type="number" min="0" step="0.01" value={form.price} onChange={(event) => setForm({ ...form, price: event.target.value })} /></label>
+          <label>买入数量<input type="number" min="1" step="1" value={form.quantity} onChange={(event) => setForm({ ...form, quantity: event.target.value })} /></label>
+          <button className="primary-btn" type="submit" disabled={loading}>{form.direction === "1" ? "买入" : "卖出"}</button>
+        </form>
+        <section className="glass-card table-card">
+          <PanelHeader title="持仓" />
+          <Table headers={["代码", "持仓数量", "成本价", "盈亏"]} rows={positions.map((p) => [p.symbol, String(p.totalQuantity ?? 0), formatMoney(toNumber(p.costPrice)), formatMoney(toNumber(p.profitLoss))])} />
         </section>
-        <section className="panel"><PanelTitle eyebrow="Deals" title="成交回放" iconName="solar:rewind-back-bold-duotone" /><DataRows rows={dealRows} /></section>
-      </div>
-      <button className="page-cta" type="button" onClick={() => onNavigate("advisor")}>{icon("solar:chat-round-like-bold-duotone")}让 AI 看一下风险</button>
-    </PageShell>
+      </section>
+      <section className="glass-card table-card">
+        <PanelHeader title="当日委托" />
+        <div className="order-list">
+          {orders.map((row) => (
+            <div className="order-row" key={`${row.left}-${row.meta}-${row.right}-${row.id || ""}`}>
+              <span>{row.left}</span><b>{row.meta}</b><span>{row.middle}</span><em>{row.right}</em>
+              {row.canCancel ? <button type="button" onClick={() => cancelOrder(row.id)} disabled={loading}>撤单</button> : <i />}
+            </div>
+          ))}
+        </div>
+      </section>
+      <section className="glass-card table-card">
+        <PanelHeader title="当日成交" />
+        <Table headers={["时间", "代码", "方向", "成交价", "数量"]} rows={deals.map((d) => [d.createTime || "-", d.symbol, directionLabel(d.direction), formatMoney(toNumber(d.price)), String(d.quantity ?? "-")])} />
+      </section>
+      <button className="advisor-launch inline" type="button" onClick={() => onNavigate("advisor")}>让 AI 看一下风险</button>
+    </PageFrame>
   );
 }
 
-function CommunityPage({ onNavigate, user }: { onNavigate: (page: Page) => void; user: LoginVO | null }) {
-  const [blogs, setBlogs] = useState<BlogDTO[]>([]);
-  const [notice, setNotice] = useState<Notice>({ type: "info", text: "热门帖子可直接查看；发帖、点赞、评论和关注需要登录。" });
+function OptionalPage({ onNavigate }: { onNavigate: (page: Page) => void }) {
+  const [optionalStocks, setOptionalStocks] = useState<StockFollowDTO[]>([]);
+  const [symbol, setSymbol] = useState("600519");
+  const [notice, setNotice] = useState<Notice>({ type: "info", text: "自选股会同步后端。" });
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({ title: "", stockId: "", context: "" });
+
+  const refreshOptional = async () => {
+    setLoading(true);
+    try {
+      setOptionalStocks(await api.getOptionalStocks() || []);
+      setNotice({ type: "success", text: "自选股已刷新。" });
+    } catch (error) {
+      setNotice({ type: "error", text: getErrorText(error) });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    refreshOptional();
+  }, []);
+
+  const addOptional = async (event: FormEvent) => {
+    event.preventDefault();
+    setLoading(true);
+    try {
+      await api.addOptionalStock(symbol.trim());
+      await refreshOptional();
+      setNotice({ type: "success", text: "已添加自选股。" });
+    } catch (error) {
+      setNotice({ type: "error", text: getErrorText(error) });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const removeOptional = async (nextSymbol: string) => {
+    setLoading(true);
+    try {
+      await api.removeOptionalStock(nextSymbol);
+      await refreshOptional();
+      setNotice({ type: "success", text: "已删除。" });
+    } catch (error) {
+      setNotice({ type: "error", text: getErrorText(error) });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const visibleWatchlist = optionalStocks.length > 0 ? optionalStocks : watchlist.map((stock) => ({ symbol: stock.symbol, name: stock.name, price: Number(stock.price.replace(/,/g, "")), changePercent: Number(stock.change.replace("%", "")) }));
+
+  return (
+    <PageFrame title="我的自选股" subtitle="只放你真会看的票。别收藏一堆噪音。">
+      <NoticeBar notice={notice} />
+      <section className="glass-card table-card">
+        <form className="inline-form" onSubmit={addOptional}>
+          <input value={symbol} onChange={(event) => setSymbol(event.target.value)} placeholder="输入股票代码" />
+          <button type="submit" disabled={loading}>添加自选</button>
+          <button type="button" onClick={refreshOptional} disabled={loading}>刷新</button>
+        </form>
+        <Table
+          headers={["代码", "名称", "当前价", "涨跌幅", "操作"]}
+          rows={visibleWatchlist.map((stock) => [
+            stock.symbol,
+            stock.name || stock.symbol,
+            formatMoney(toNumber(stock.price)),
+            `${toNumber(stock.changePercent).toFixed(2)}%`,
+            <button className="link-btn" type="button" onClick={() => removeOptional(stock.symbol)} disabled={loading}>删除</button>,
+          ])}
+        />
+      </section>
+      <button className="advisor-launch inline" type="button" onClick={() => onNavigate("advisor")}>预测自选股</button>
+    </PageFrame>
+  );
+}
+
+function CommunityPage({ user }: { onNavigate: (page: Page) => void; user: LoginVO | null }) {
+  const [blogs, setBlogs] = useState<BlogDTO[]>([]);
+  const [comments, setComments] = useState<Record<number, BlogCommentDTO[]>>({});
   const [openBlogId, setOpenBlogId] = useState<number | null>(null);
   const [commentText, setCommentText] = useState("");
-  const [comments, setComments] = useState<Record<number, BlogCommentDTO[]>>({});
+  const [notice, setNotice] = useState<Notice>({ type: "info", text: "可以发帖、点赞、评论、关注。" });
+  const [loading, setLoading] = useState(false);
   const [followedUsers, setFollowedUsers] = useState<Record<number, boolean>>({});
+  const [form, setForm] = useState({ title: "", stockId: "", context: "" });
 
-  const fallbackBlogs: BlogDTO[] = communityPosts.map((post) => ({ id: post.id, title: post.title, context: post.context, name: post.author, liked: post.heat, isLike: false }));
-  const visibleBlogs = blogs.length > 0 ? blogs : fallbackBlogs;
+  const normalizeComments = (data: unknown): BlogCommentDTO[] => {
+    if (Array.isArray(data)) return data as BlogCommentDTO[];
+    const page = data as { records?: BlogCommentDTO[]; list?: BlogCommentDTO[] };
+    return page?.records || page?.list || [];
+  };
 
   const refreshBlogs = async () => {
     setLoading(true);
     try {
-      const nextBlogs = await api.getHotBlogs();
-      setBlogs(nextBlogs || []);
-      setNotice({ type: "success", text: "社区热帖已刷新。" });
+      setBlogs(await api.getHotBlogs() || []);
+      setNotice({ type: "success", text: "社区已刷新。" });
     } catch (error) {
       setNotice({ type: "error", text: getErrorText(error) });
     } finally {
@@ -430,9 +532,21 @@ function CommunityPage({ onNavigate, user }: { onNavigate: (page: Page) => void;
     refreshBlogs();
   }, []);
 
-  const normalizeComments = (data: Awaited<ReturnType<typeof api.getComments>>) => {
-    if (Array.isArray(data)) return data;
-    return data.records || data.list || [];
+  const visibleBlogs = blogs.length > 0 ? blogs : communityPosts.map((post, index) => ({ id: index + 1, userId: 1, title: post.title, context: post.context, liked: post.heat, comments: 0, name: post.author }));
+
+  const submitBlog = async (event: FormEvent) => {
+    event.preventDefault();
+    setLoading(true);
+    try {
+      await api.createBlog({ title: form.title.trim(), stockId: form.stockId.trim(), context: form.context.trim() });
+      setForm({ title: "", stockId: "", context: "" });
+      await refreshBlogs();
+      setNotice({ type: "success", text: "帖子已发布。" });
+    } catch (error) {
+      setNotice({ type: "error", text: getErrorText(error) });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const loadComments = async (blogId?: number) => {
@@ -446,38 +560,19 @@ function CommunityPage({ onNavigate, user }: { onNavigate: (page: Page) => void;
     }
   };
 
-  const submitBlog = async (event: FormEvent) => {
-    event.preventDefault();
-    setLoading(true);
-    try {
-      await api.createBlog({ title: form.title.trim(), stockId: form.stockId.trim(), context: form.context.trim() });
-      setForm({ title: "", stockId: "", context: "" });
-      setNotice({ type: "success", text: "帖子已发布。" });
-      await refreshBlogs();
-    } catch (error) {
-      setNotice({ type: "error", text: getErrorText(error) });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const likeBlog = async (id?: number) => {
     if (!id) return;
-    setLoading(true);
     try {
       await api.likeBlog(id);
       setBlogs((current) => current.map((blog) => (blog.id === id ? { ...blog, liked: (blog.liked || 0) + 1, isLike: true } : blog)));
       setNotice({ type: "success", text: "已点赞。" });
     } catch (error) {
       setNotice({ type: "error", text: getErrorText(error) });
-    } finally {
-      setLoading(false);
     }
   };
 
   const submitComment = async (blogId?: number) => {
     if (!blogId || !commentText.trim()) return;
-    setLoading(true);
     try {
       await api.addComment({ blogId, content: commentText.trim() });
       setCommentText("");
@@ -486,8 +581,6 @@ function CommunityPage({ onNavigate, user }: { onNavigate: (page: Page) => void;
       setNotice({ type: "success", text: "评论已发布。" });
     } catch (error) {
       setNotice({ type: "error", text: getErrorText(error) });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -518,181 +611,85 @@ function CommunityPage({ onNavigate, user }: { onNavigate: (page: Page) => void;
     try {
       await api.followUser(userId, next);
       setFollowedUsers((current) => ({ ...current, [userId]: next }));
-      setNotice({ type: "success", text: next ? "已关注用户。" : "已取消关注。" });
+      setNotice({ type: "success", text: next ? "已关注。" : "已取消关注。" });
     } catch (error) {
       setNotice({ type: "error", text: getErrorText(error) });
     }
   };
 
   return (
-    <PageShell eyebrow="Community" title="社区" subtitle="发帖、点赞、评论、关注。">
+    <PageFrame title="股友社区" subtitle="说人话。别装大师。">
       <NoticeBar notice={notice} />
-      <div className="community-layout">
-        <section className="panel">
-          <PanelTitle eyebrow="New Post" title="发布观点" iconName="solar:pen-new-square-bold-duotone" />
-          <form className="post-form" onSubmit={submitBlog}>
-            <label>标题<input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} placeholder="比如：白酒反弹别上头" required /></label>
-            <label>关联股票<input value={form.stockId} onChange={(event) => setForm({ ...form, stockId: event.target.value })} placeholder="600519，可不填" /></label>
-            <label>正文<textarea value={form.context} onChange={(event) => setForm({ ...form, context: event.target.value })} placeholder="说清楚你的判断。" required /></label>
-            <button type="submit" disabled={loading}>{icon("solar:plain-2-bold-duotone")}发布帖子</button>
-          </form>
-        </section>
-
-        <section className="panel">
-          <PanelTitle eyebrow="Hot Posts" title="热帖" iconName="solar:users-group-rounded-bold-duotone" />
-          <div className="post-list">
-            {visibleBlogs.map((post) => {
-              const blogComments = post.id ? comments[post.id] || [] : [];
-              return (
-                <article className="post-card rich-post" key={post.id || post.title}>
-                  <div>
-                    <strong>{post.title}</strong>
-                    <span>{post.name || `用户 ${post.userId || ""}`}</span>
-                    <p>{post.context}</p>
-                    <div className="inline-actions">
-                      <button type="button" onClick={() => likeBlog(post.id)} disabled={loading || !post.id}>{icon(post.isLike ? "solar:heart-bold" : "solar:heart-bold-duotone")}{post.liked || 0}</button>
-                      <button type="button" onClick={() => loadComments(post.id)} disabled={!post.id}>{icon("solar:chat-round-dots-bold-duotone")}评论</button>
-                      <button type="button" onClick={() => followUser(post.userId)} disabled={!post.userId || user?.id === post.userId}>
-                        {icon("solar:user-check-rounded-bold-duotone")}
-                        {post.userId && followedUsers[post.userId] ? "取消关注" : "关注"}
-                      </button>
+      <section className="community-board">
+        <form className="glass-card post-form" onSubmit={submitBlog}>
+          <PanelHeader title="发布观点" />
+          <input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} placeholder="标题" required />
+          <input value={form.stockId} onChange={(event) => setForm({ ...form, stockId: event.target.value })} placeholder="关联股票，可不填" />
+          <textarea value={form.context} onChange={(event) => setForm({ ...form, context: event.target.value })} placeholder="写清楚你的判断。" required />
+          <button className="primary-btn" type="submit" disabled={loading}>发布观点</button>
+        </form>
+        <section className="glass-card post-list">
+          <PanelHeader title="热门推荐" />
+          {visibleBlogs.map((post) => {
+            const blogComments = post.id ? comments[post.id] || [] : [];
+            return (
+              <article className="post-card" key={post.id || post.title}>
+                <h3>{post.title}</h3>
+                <p>{post.context}</p>
+                <small>{post.name || `用户 ${post.userId || ""}`}</small>
+                <div className="inline-actions">
+                  <button type="button" onClick={() => likeBlog(post.id)} disabled={!post.id}>{icon("solar:heart-bold-duotone")}{post.liked || 0}</button>
+                  <button type="button" onClick={() => loadComments(post.id)} disabled={!post.id}>{icon("solar:chat-round-dots-bold-duotone")}评论</button>
+                  <button type="button" onClick={() => followUser(post.userId)} disabled={!post.userId || user?.id === post.userId}>{post.userId && followedUsers[post.userId] ? "取消关注" : "关注"}</button>
+                </div>
+                {openBlogId === post.id && (
+                  <div className="comment-box">
+                    <div className="inline-form compact">
+                      <input value={commentText} onChange={(event) => setCommentText(event.target.value)} placeholder="写下你的评论" />
+                      <button type="button" onClick={() => submitComment(post.id)}>发送</button>
                     </div>
-                    {openBlogId === post.id && (
-                      <div className="comment-box">
-                        <div className="comment-composer">
-                          <input value={commentText} onChange={(event) => setCommentText(event.target.value)} placeholder="写一句评论" />
-                          <button type="button" onClick={() => submitComment(post.id)} disabled={loading}>发送</button>
-                        </div>
-                        {blogComments.map((comment) => (
-                          <div className="comment-line" key={comment.id}>
-                            <div><strong>{comment.user?.nickname || "匿名用户"}</strong><p>{comment.content}</p></div>
-                            <button type="button" onClick={() => likeComment(post.id!, comment.id)}>{icon("solar:heart-bold-duotone")}{comment.liked || 0}</button>
-                            <button type="button" onClick={() => deleteComment(post.id!, comment.id)}>删除</button>
-                          </div>
-                        ))}
+                    {blogComments.length === 0 && <p className="empty-text">暂无评论</p>}
+                    {blogComments.map((comment) => (
+                      <div className="comment-line" key={comment.id}>
+                        <div><b>{comment.user?.nickname || "匿名用户"}</b><p>{comment.content}</p></div>
+                        <button type="button" onClick={() => likeComment(post.id!, comment.id)}>赞 {comment.liked || 0}</button>
+                        <button type="button" onClick={() => deleteComment(post.id!, comment.id)}>删除</button>
                       </div>
-                    )}
+                    ))}
                   </div>
-                </article>
-              );
-            })}
-          </div>
+                )}
+              </article>
+            );
+          })}
         </section>
-      </div>
-
-      <section className="panel accent-panel">
-        <PanelTitle eyebrow="Watch" title="社区提醒" iconName="solar:bell-bing-bold-duotone" />
-        <h2>别只看热闹。</h2>
-        <p>热帖能参考。</p>
-        <p>仓位要自己扛。</p>
-        <button type="button" onClick={() => onNavigate("trade")}>回交易页</button>
       </section>
-    </PageShell>
+    </PageFrame>
   );
 }
 
-function renderInlineMarkdown(text: string) {
-  const nodes: React.ReactNode[] = [];
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
-
-  parts.forEach((part, index) => {
-    if (!part) return;
-    if (part.startsWith("**") && part.endsWith("**")) {
-      nodes.push(<strong key={`${part}-${index}`}>{part.slice(2, -2)}</strong>);
-    } else {
-      nodes.push(part);
-    }
-  });
-
-  return nodes;
-}
-
-function MarkdownMessage({ text }: { text: string }) {
-  const lines = text.split(/\r?\n/);
-  const blocks: React.ReactNode[] = [];
-  let listItems: string[] = [];
-
-  const flushList = () => {
-    if (listItems.length === 0) return;
-    blocks.push(
-      <ul key={`list-${blocks.length}`}>
-        {listItems.map((item, index) => <li key={`${item}-${index}`}>{renderInlineMarkdown(item)}</li>)}
-      </ul>,
-    );
-    listItems = [];
-  };
-
-  lines.forEach((rawLine, index) => {
-    const line = rawLine.trim();
-    if (!line) {
-      flushList();
-      return;
-    }
-
-    if (/^-{3,}$/.test(line)) {
-      flushList();
-      blocks.push(<hr key={`hr-${index}`} />);
-      return;
-    }
-
-    const heading = /^(#{1,4})\s+(.+)$/.exec(line);
-    if (heading) {
-      flushList();
-      const level = Math.min(heading[1].length, 4);
-      const content = renderInlineMarkdown(heading[2]);
-      if (level === 1) blocks.push(<h1 key={`heading-${index}`}>{content}</h1>);
-      if (level === 2) blocks.push(<h2 key={`heading-${index}`}>{content}</h2>);
-      if (level === 3) blocks.push(<h3 key={`heading-${index}`}>{content}</h3>);
-      if (level === 4) blocks.push(<h4 key={`heading-${index}`}>{content}</h4>);
-      return;
-    }
-
-    const unordered = /^[-*]\s+(.+)$/.exec(line);
-    const ordered = /^\d+[.)]\s+(.+)$/.exec(line);
-    if (unordered || ordered) {
-      listItems.push((unordered || ordered)![1]);
-      return;
-    }
-
-    flushList();
-    blocks.push(<p key={`p-${index}`}>{renderInlineMarkdown(line)}</p>);
-  });
-
-  flushList();
-
-  return <div className="markdown-message">{blocks}</div>;
-}
-
-function AdvisorPage({ onNavigate }: { onNavigate: (page: Page) => void }) {
+function AdvisorPage({ onNavigate, user }: { onNavigate: (page: Page) => void; user: LoginVO | null }) {
   const [messages, setMessages] = useState(advisorChat);
-  const [question, setQuestion] = useState("下一步先看啥？");
+  const [question, setQuestion] = useState("600519 现在能买吗？");
   const [sessionId, setSessionId] = useState("");
   const [loading, setLoading] = useState(false);
-  const [notice, setNotice] = useState<Notice>({ type: "info", text: "这里会请求 8091 的 AI 智能投顾服务。" });
-  const advisorUserId = getStoredUser()?.id ? String(getStoredUser()?.id) : "web-guest";
-  const casualQuestionPattern = /^(你好|您好|嗨|hi|hello|在吗|你是谁|你能做什么|能干嘛)[。！？!?\s]*$/i;
+  const [notice, setNotice] = useState<Notice>({ type: "info", text: "AI 顾问会连接 8091，并可调用实时行情 MCP。" });
+  const advisorUserId = user?.id ? String(user.id) : "web-guest";
+  const casualQuestionPattern = /^(你好|您好|嗨|hi|hello|在吗|你是谁|你能做什么|能干嘛)[。！？?\s]*$/i;
 
-  const sendQuestion = async () => {
+  const submitQuestion = async (event: FormEvent) => {
+    event.preventDefault();
     const text = question.trim();
     if (!text) return;
+    setMessages((current) => [...current, { role: "user", text }]);
+    setQuestion("");
     setLoading(true);
-    setMessages((current) => [
-      ...current,
-      { role: "user", text },
-    ]);
+
     if (casualQuestionPattern.test(text)) {
-      setMessages((current) => [
-        ...current,
-        {
-          role: "assistant",
-          text: "你好，我在。你可以问我持仓、交易记录、账户风险和复盘建议。",
-        },
-      ]);
-      setNotice({ type: "success", text: "已识别为闲聊，未触发投资分析。" });
-      setQuestion("");
+      setMessages((current) => [...current, { role: "assistant", text: "你好，我在。你可以问我行情、持仓、交易复盘和风险。" }]);
       setLoading(false);
       return;
     }
+
     try {
       let nextSessionId = sessionId;
       if (!nextSessionId) {
@@ -704,38 +701,36 @@ function AdvisorPage({ onNavigate }: { onNavigate: (page: Page) => void }) {
         agentId: "investment-advisor",
         userId: advisorUserId,
         sessionId: nextSessionId,
-        message: `用户原始问题：${text}\n\n如果这只是问候或寒暄，只做简短回应，不要生成投资顾问分析报告。`,
+        message: text,
       });
       setMessages((current) => [...current, { role: "assistant", text: reply.content || "AI 服务返回了空内容。" }]);
-      setNotice({ type: "success", text: "AI 顾问已返回后端结果。" });
+      setNotice({ type: "success", text: "AI 顾问已返回。" });
     } catch (error) {
       const errorText = getErrorText(error);
-      setMessages((current) => [...current, { role: "assistant", text: `AI 服务返回错误：${errorText}` }]);
+      setMessages((current) => [...current, { role: "assistant", text: `AI 服务错误：${errorText}` }]);
       setNotice({ type: "error", text: errorText });
     } finally {
-      setQuestion("");
       setLoading(false);
     }
   };
 
-  const submitQuestion = (event: FormEvent) => {
-    event.preventDefault();
-    sendQuestion();
-  };
-
   return (
-    <PageShell eyebrow="Advisor" title="AI 顾问" subtitle="先找问题，再给动作。">
+    <PageFrame title="Agent 投资顾问" subtitle="先问数据。再问判断。别倒过来。">
       <NoticeBar notice={notice} />
-      <div className="advisor-layout">
-        <aside className="panel">
-          <PanelTitle eyebrow="Trading Profile" title="交易画像" iconName="solar:user-id-bold-duotone" />
+      <section className="advisor-grid">
+        <aside className="glass-card profile-panel">
+          <PanelHeader title="交易画像" />
           {advisorTasks.map((task) => (
-            <div className="profile-row" key={task.label}><div><strong>{task.label}</strong><span>{task.value}</span></div><div className="heat-bar"><i style={{ width: `${task.level}%` }} /></div></div>
+            <div className="profile-row" key={task.label}>
+              <div><b>{task.label}</b><span>{task.value}</span></div>
+              <div className="heat-bar"><i style={{ width: `${task.level}%` }} /></div>
+            </div>
           ))}
+          <button className="advisor-launch inline" type="button" onClick={() => onNavigate("trade")}>去交易页处理</button>
         </aside>
-        <section className="panel chat-panel">
-          <PanelTitle eyebrow="Conversation" title="顾问对话" iconName="solar:chat-round-like-bold-duotone" />
-          <div className="advisor-avatar-large">{icon("solar:chat-round-like-bold-duotone")}</div>
+        <section className="glass-card chat-panel">
+          <PanelHeader title="顾问对话" />
+          <div className="agent-orb">{icon("solar:chat-round-like-bold-duotone")}</div>
           <div className="chat-stream">
             {messages.map((message, index) => (
               <div className={`chat-bubble ${message.role}`} key={`${message.role}-${index}`}>
@@ -745,122 +740,138 @@ function AdvisorPage({ onNavigate }: { onNavigate: (page: Page) => void }) {
             ))}
           </div>
           <form className="chat-composer" onSubmit={submitQuestion}>
-            <input value={question} onChange={(event) => setQuestion(event.target.value)} aria-label="顾问问题输入框" placeholder="输入你的问题" />
-            <button type="submit" disabled={loading}>{icon("solar:plain-2-bold-duotone")}{loading ? "等待 AI" : "发送"}</button>
+            <input value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="输入你的问题，比如：600519 现在多少钱？" />
+            <button type="submit" disabled={loading}>{loading ? "等待 AI" : "发送"}</button>
           </form>
         </section>
-        <aside className="panel">
-          <PanelTitle eyebrow="Action Board" title="观察清单" iconName="solar:checklist-minimalistic-bold-duotone" />
-          {advisorMessage.suggestions.map((suggestion, index) => (<div className="action-card" key={suggestion}><b>{index + 1}</b><p>{suggestion}</p></div>))}
-          <button className="page-cta full" type="button" onClick={() => onNavigate("trade")}>去交易页处理</button>
+        <aside className="glass-card action-panel">
+          <PanelHeader title="观察清单" />
+          {advisorMessage.suggestions.map((suggestion, index) => (
+            <div className="action-card" key={suggestion}><b>{index + 1}</b><p>{suggestion}</p></div>
+          ))}
         </aside>
-      </div>
-    </PageShell>
+      </section>
+    </PageFrame>
   );
 }
 
 function NewsPage({ onNavigate }: { onNavigate: (page: Page) => void }) {
-  const [optionalStocks, setOptionalStocks] = useState<StockFollowDTO[]>([]);
-  const [symbol, setSymbol] = useState("600519");
-  const [notice, setNotice] = useState<Notice>({ type: "info", text: "登录后可管理自选股。" });
-  const [loading, setLoading] = useState(false);
-
-  const refreshOptional = async () => {
-    setLoading(true);
-    try {
-      const list = await api.getOptionalStocks();
-      setOptionalStocks(list || []);
-      setNotice({ type: "success", text: "自选股已刷新。" });
-    } catch (error) {
-      setNotice({ type: "error", text: getErrorText(error) });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    refreshOptional();
-  }, []);
-
-  const addOptional = async (event: FormEvent) => {
-    event.preventDefault();
-    setLoading(true);
-    try {
-      await api.addOptionalStock(symbol.trim());
-      setNotice({ type: "success", text: "已添加自选股。" });
-      await refreshOptional();
-    } catch (error) {
-      setNotice({ type: "error", text: getErrorText(error) });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const removeOptional = async (nextSymbol: string) => {
-    setLoading(true);
-    try {
-      await api.removeOptionalStock(nextSymbol);
-      setNotice({ type: "success", text: "已删除自选股。" });
-      await refreshOptional();
-    } catch (error) {
-      setNotice({ type: "error", text: getErrorText(error) });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const visibleWatchlist = optionalStocks.length > 0 ? optionalStocks : watchlist.map((stock) => ({ symbol: stock.symbol, name: stock.name, price: Number(stock.price.replace(/,/g, "")), changePercent: Number(stock.change.replace("%", "")) }));
-
   return (
-    <PageShell eyebrow="Intelligence" title="市场资讯" subtitle="资讯流和自选股管理。">
-      <NoticeBar notice={notice} />
-      <div className="two-column">
-        <section className="panel">
-          <PanelTitle eyebrow="Live News" title="资讯流" iconName="solar:document-text-bold-duotone" />
-          {marketNews.map((news) => (<div className="news-line" key={news}><span /><p>{news}</p></div>))}
-        </section>
-        <section className="panel">
-          <PanelTitle eyebrow="Watch List" title="自选股管理" iconName="solar:radar-2-bold-duotone" />
-          <form className="optional-form" onSubmit={addOptional}>
-            <input value={symbol} onChange={(event) => setSymbol(event.target.value)} placeholder="输入股票代码" />
-            <button type="submit" disabled={loading}>添加</button>
-            <button type="button" onClick={refreshOptional} disabled={loading}>刷新</button>
-          </form>
-          {visibleWatchlist.map((stock) => (
-            <div className="heat-row optional-row" key={stock.symbol}>
-              <div><strong>{stock.name || stock.symbol}</strong><span>{stock.symbol}</span></div>
-              <span>{formatMoney(toNumber(stock.price))}</span>
-              <em>{toNumber(stock.changePercent).toFixed(2)}%</em>
-              <button type="button" onClick={() => removeOptional(stock.symbol)} disabled={loading}>删除</button>
-            </div>
-          ))}
-        </section>
-      </div>
-      <button className="page-cta" type="button" onClick={() => onNavigate("advisor")}>让 AI 总结风险</button>
-    </PageShell>
+    <PageFrame title="财经资讯" subtitle="新闻很多。先筛，再看。">
+      <section className="glass-card news-panel">
+        <div className="inline-form">
+          <input defaultValue="600519" placeholder="输入股票/代码" />
+          <button type="button">搜索</button>
+        </div>
+        {marketNews.concat(marketNews).slice(0, 10).map((news, index) => (
+          <button className="news-item" type="button" key={`${news}-${index}`}>
+            <strong>{news}</strong>
+            <span>证券时报</span>
+            {icon("solar:alt-arrow-right-linear")}
+          </button>
+        ))}
+      </section>
+      <button className="advisor-launch inline" type="button" onClick={() => onNavigate("advisor")}>让 AI 总结资讯</button>
+    </PageFrame>
   );
 }
 
-function PageShell({ eyebrow, title, subtitle, children }: { eyebrow: string; title: string; subtitle: string; children: React.ReactNode }) {
-  return <div className="page-shell"><section className="page-hero"><span className="eyebrow">{eyebrow}</span><h1>{title}</h1><p>{subtitle}</p></section>{children}</div>;
+function PageFrame({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
+  return (
+    <div className="page-frame">
+      <section className="page-title">
+        <span>Quant Console</span>
+        <h1>{title}</h1>
+        <p>{subtitle}</p>
+      </section>
+      {children}
+    </div>
+  );
 }
 
-function SectionTitle({ eyebrow, title, action, onClick }: { eyebrow: string; title: string; action?: string; onClick?: () => void }) {
-  return <div className="section-title"><div><span className="eyebrow">{eyebrow}</span><h2>{title}</h2></div>{action && <button type="button" onClick={onClick}>{action}{icon("solar:arrow-right-up-bold-duotone")}</button>}</div>;
+function PanelHeader({ title, action, onAction }: { title: string; action?: string; onAction?: () => void }) {
+  return (
+    <div className="panel-header">
+      <h2>{title}</h2>
+      {action && <button type="button" onClick={onAction}>{action}</button>}
+    </div>
+  );
 }
 
-function FeatureCard({ iconName, title, text, buttonText, onClick }: { iconName: string; title: string; text: string; buttonText: string; onClick: () => void }) {
-  return <article className="feature-card"><span>{icon(iconName)}</span><h3>{title}</h3><p>{text}</p><button type="button" onClick={onClick}>{buttonText}</button></article>;
+function MetricTriplet({ values }: { values: Array<[string, string]> }) {
+  return (
+    <div className="metric-triplet">
+      {values.map(([label, value]) => (
+        <div key={label}><span>{label}</span><strong>{value}</strong></div>
+      ))}
+    </div>
+  );
 }
 
-function PanelTitle({ eyebrow, title, iconName }: { eyebrow: string; title: string; iconName: string }) {
-  return <div className="panel-heading"><div><p>{eyebrow}</p><h2>{title}</h2></div><Icon icon={iconName} aria-hidden="true" /></div>;
+function Table({ headers, rows }: { headers: string[]; rows: Array<Array<React.ReactNode>> }) {
+  return (
+    <div className="data-table" style={{ "--cols": headers.length } as React.CSSProperties}>
+      {headers.map((header) => <b key={header}>{header}</b>)}
+      {rows.map((row, rowIndex) => row.map((cell, cellIndex) => <span key={`${rowIndex}-${cellIndex}`}>{cell}</span>))}
+    </div>
+  );
 }
 
-function DataRows({ rows }: { rows: Array<{ left: string; meta: string; middle: string; right: string }> }) {
-  return <div className="data-rows">{rows.map((row) => <div className="data-row" key={`${row.left}-${row.meta}-${row.right}`}><div><strong>{row.left}</strong><span>{row.meta}</span></div><span>{row.middle}</span><b>{row.right}</b></div>)}</div>;
+function DataLine({ title, meta, value, tone }: { title: string; meta: string; value: string; tone: "up" | "down" }) {
+  return <div className="data-line"><div><strong>{title}</strong><span>{meta}</span></div><em className={tone}>{value}</em></div>;
+}
+
+function NewsLine({ title }: { title: string }) {
+  return <div className="news-line"><span /> <p>{title}</p></div>;
 }
 
 function NoticeBar({ notice }: { notice: Notice }) {
   return <div className={`notice-bar ${notice.type}`}>{notice.text}</div>;
+}
+
+function renderInlineMarkdown(text: string) {
+  const nodes: React.ReactNode[] = [];
+  text.split(/(\*\*[^*]+\*\*)/g).forEach((part, index) => {
+    if (!part) return;
+    nodes.push(part.startsWith("**") && part.endsWith("**") ? <strong key={index}>{part.slice(2, -2)}</strong> : part);
+  });
+  return nodes;
+}
+
+function MarkdownMessage({ text }: { text: string }) {
+  const blocks: React.ReactNode[] = [];
+  let listItems: string[] = [];
+  const flushList = () => {
+    if (!listItems.length) return;
+    blocks.push(<ul key={`list-${blocks.length}`}>{listItems.map((item, index) => <li key={index}>{renderInlineMarkdown(item)}</li>)}</ul>);
+    listItems = [];
+  };
+
+  text.split(/\r?\n/).forEach((rawLine, index) => {
+    const line = rawLine.trim();
+    if (!line) {
+      flushList();
+      return;
+    }
+    if (/^-{3,}$/.test(line)) {
+      flushList();
+      blocks.push(<hr key={index} />);
+      return;
+    }
+    const heading = /^(#{1,4})\s+(.+)$/.exec(line);
+    if (heading) {
+      flushList();
+      blocks.push(<h3 key={index}>{renderInlineMarkdown(heading[2])}</h3>);
+      return;
+    }
+    const list = /^[-*]\s+(.+)$/.exec(line) || /^\d+[.)]\s+(.+)$/.exec(line);
+    if (list) {
+      listItems.push(list[1]);
+      return;
+    }
+    flushList();
+    blocks.push(<p key={index}>{renderInlineMarkdown(line)}</p>);
+  });
+  flushList();
+  return <div className="markdown-message">{blocks}</div>;
 }
