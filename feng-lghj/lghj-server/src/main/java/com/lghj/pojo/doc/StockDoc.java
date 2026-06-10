@@ -22,7 +22,7 @@ public class StockDoc {
     @Field(type = FieldType.Keyword)
     private String symbol;
 
-    @Field(type = FieldType.Text, analyzer = "ik_max_word", searchAnalyzer = "ik_smart")
+    @Field(type = FieldType.Text, analyzer = "standard", searchAnalyzer = "standard")
     private String name;
 
     @Field(type = FieldType.Keyword)
