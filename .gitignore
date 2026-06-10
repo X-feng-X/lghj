@@ -3,6 +3,15 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+### Runtime logs and frontend artifacts ###
+*.log
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+.npm-cache/
+**/.npm-cache/
+
 ### IntelliJ IDEA ###
 .idea/modules.xml
 .idea/jarRepositories.xml

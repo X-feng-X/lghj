@@ -20,6 +20,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -45,12 +46,13 @@ public class RealTimeStockServiceImpl implements IRealTimeStockService {
      */
     @Override
     public List<StockNewsVO> getStockNews(String symbol, int recentN) {
+        String keyword = normalizeNewsKeyword(symbol);
 
         // TODO 可以考虑存Redis
         // 构造内部参数
         Map<String, Object> innerParam = new HashMap<>();
         innerParam.put("uid", "");
-        innerParam.put("keyword", symbol);
+        innerParam.put("keyword", keyword);
         innerParam.put("type", new String[]{"cmsArticleWebOld"});
         innerParam.put("client", "web");
         innerParam.put("clientType", "web");
@@ -79,7 +81,7 @@ public class RealTimeStockServiceImpl implements IRealTimeStockService {
         try {
             String response = HttpUtil.createGet(UrlConstant.STOCK_NEWS_URL)
                     .form(requestParams)
-                    .header("Referer", "https://so.eastmoney.com/news/s?keyword=" + symbol)
+                    .header("Referer", "https://so.eastmoney.com/news/s?keyword=" + keyword)
                     .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36")
                     .execute()
                     .body();
@@ -95,7 +97,7 @@ public class RealTimeStockServiceImpl implements IRealTimeStockService {
                         for (int i = 0; i < articles.size(); i++) {
                             JSONObject article = articles.getJSONObject(i);
                             StockNewsVO vo = new StockNewsVO();
-                            vo.setKeyword(symbol);
+                            vo.setKeyword(keyword);
                             vo.setTitle(cleanText(article.getString("title")));
                             vo.setContent(cleanText(article.getString("content")));
                             vo.setPublishTime(article.getString("date"));
@@ -115,9 +117,30 @@ public class RealTimeStockServiceImpl implements IRealTimeStockService {
                 }
             }
         } catch (Exception e) {
-            log.error("获取股票新闻异常，股票代码：{}", symbol, e);
+            log.error("获取股票新闻异常，symbol={}, keyword={}", symbol, keyword, e);
         }
         return new ArrayList<>();
+    }
+
+    private String normalizeNewsKeyword(String symbol) {
+        if (symbol == null || symbol.trim().isEmpty()) {
+            return "股市";
+        }
+
+        String normalized = symbol.trim().toLowerCase(Locale.ROOT);
+        if ("sh000001".equals(normalized) || "000001.sh".equals(normalized)) {
+            return "上证指数";
+        }
+        if ("sz399001".equals(normalized) || "399001.sz".equals(normalized)) {
+            return "深证成指";
+        }
+        if ("sz399006".equals(normalized) || "399006.sz".equals(normalized)) {
+            return "创业板指";
+        }
+        if (normalized.startsWith("sh") || normalized.startsWith("sz")) {
+            return normalized.substring(2);
+        }
+        return symbol.trim();
     }
 
     /**
@@ -133,6 +156,226 @@ public class RealTimeStockServiceImpl implements IRealTimeStockService {
         }
         return text.replace("<em>", "").replace("</em>", "")
                 .replace("&nbsp;", " ").trim();
+    }
+
+    @Override
+    public List<Map<String, Object>> getStockHistory(String symbol, String period) {
+        StockSymbol stockSymbol = normalizeStockSymbol(symbol);
+        if (stockSymbol == null) {
+            log.warn("历史K线股票代码为空或非法，symbol={}", symbol);
+            return new ArrayList<>();
+        }
+
+        String normalizedPeriod = normalizePeriod(period);
+        String redisKey = RedisConstant.STOCK_HISTORY_KEY + stockSymbol.market + stockSymbol.code + ":" + normalizedPeriod;
+
+        try {
+            String cached = stringRedisTemplate.opsForValue().get(redisKey);
+            if (cached != null && !cached.isEmpty()) {
+                return JSON.parseObject(cached, List.class);
+            }
+        } catch (Exception e) {
+            log.warn("读取历史K线缓存失败，key={}", redisKey, e);
+            stringRedisTemplate.delete(redisKey);
+        }
+
+        List<Map<String, Object>> history = fetchHistoryFromSina(stockSymbol, normalizedPeriod);
+        if (history == null || history.isEmpty()) {
+            history = fetchHistoryFromTencent(stockSymbol, normalizedPeriod);
+        }
+        if (history == null || history.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        try {
+            stringRedisTemplate.opsForValue().set(redisKey, JSON.toJSONString(history), EXPIRE_TIME, TimeUnit.HOURS);
+            log.info("历史K线数据缓存到Redis，key={}, 过期时间={}小时", redisKey, EXPIRE_TIME);
+        } catch (Exception e) {
+            log.warn("写入历史K线缓存失败，key={}", redisKey, e);
+        }
+
+        return history;
+    }
+
+    private List<Map<String, Object>> fetchHistoryFromSina(StockSymbol stockSymbol, String period) {
+        Map<String, Object> requestParams = new HashMap<>();
+        requestParams.put("symbol", stockSymbol.market + stockSymbol.code);
+        requestParams.put("scale", toSinaScale(period));
+        requestParams.put("ma", "no");
+        requestParams.put("datalen", 1000);
+
+        try {
+            String response = HttpUtil.createGet(UrlConstant.STOCK_HISTORY_SINA_KLINE_URL)
+                    .form(requestParams)
+                    .timeout(5000)
+                    .header("Referer", "http://finance.sina.com.cn/")
+                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36")
+                    .execute()
+                    .body();
+
+            if (response == null || response.isEmpty()) {
+                log.warn("新浪历史K线接口返回空，市场：{}，股票代码：{}，周期：{}", stockSymbol.market, stockSymbol.code, period);
+                return new ArrayList<>();
+            }
+
+            String jsonArrayText = extractJsonArray(response);
+            if (jsonArrayText == null) {
+                log.warn("新浪历史K线接口返回格式异常，市场：{}，股票代码：{}，周期：{}", stockSymbol.market, stockSymbol.code, period);
+                return new ArrayList<>();
+            }
+
+            JSONArray klines = JSON.parseArray(jsonArrayText);
+            if (klines == null || klines.isEmpty()) {
+                log.warn("新浪历史K线接口无数据，市场：{}，股票代码：{}，周期：{}", stockSymbol.market, stockSymbol.code, period);
+                return new ArrayList<>();
+            }
+
+            List<Map<String, Object>> history = new ArrayList<>();
+            for (int i = 0; i < klines.size(); i++) {
+                JSONObject line = klines.getJSONObject(i);
+                if (line == null) {
+                    continue;
+                }
+
+                String date = line.getString("day");
+                Map<String, Object> item = new HashMap<>();
+                item.put("date", date != null && date.length() >= 10 ? date.substring(0, 10) : date);
+                item.put("open", toBigDecimal(line.getString("open")));
+                item.put("close", toBigDecimal(line.getString("close")));
+                item.put("high", toBigDecimal(line.getString("high")));
+                item.put("low", toBigDecimal(line.getString("low")));
+                item.put("volume", toLong(line.getString("volume")));
+                history.add(item);
+            }
+
+            return history;
+        } catch (Exception e) {
+            log.warn("获取新浪历史K线失败，市场：{}，股票代码：{}，周期：{}，原因：{}", stockSymbol.market, stockSymbol.code, period, e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+
+    private List<Map<String, Object>> fetchHistoryFromTencent(StockSymbol stockSymbol, String period) {
+        Map<String, Object> requestParams = new HashMap<>();
+        String symbol = stockSymbol.market + stockSymbol.code;
+        String klineType = toTencentKlineType(period);
+        requestParams.put("param", symbol + "," + klineType + ",,,1000");
+
+        try {
+            String response = HttpUtil.createGet(UrlConstant.STOCK_HISTORY_TENCENT_KLINE_URL)
+                    .form(requestParams)
+                    .timeout(5000)
+                    .header("Referer", "https://gu.qq.com/")
+                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36")
+                    .execute()
+                    .body();
+
+            if (response == null || response.isEmpty()) {
+                log.warn("历史K线接口返回空，市场：{}，股票代码：{}", stockSymbol.market, stockSymbol.code);
+                return new ArrayList<>();
+            }
+
+            JSONObject jsonObject = JSON.parseObject(response);
+            JSONObject data = jsonObject == null ? null : jsonObject.getJSONObject("data");
+            JSONObject stockData = data == null ? null : data.getJSONObject(symbol);
+            JSONArray klines = stockData == null ? null : stockData.getJSONArray(klineType);
+            if (klines == null || klines.isEmpty()) {
+                log.warn("历史K线接口无数据，市场：{}，股票代码：{}，周期：{}", stockSymbol.market, stockSymbol.code, period);
+                return new ArrayList<>();
+            }
+
+            List<Map<String, Object>> history = new ArrayList<>();
+            for (int i = 0; i < klines.size(); i++) {
+                JSONArray line = klines.getJSONArray(i);
+                if (line == null || line.size() < 6) {
+                    continue;
+                }
+
+                Map<String, Object> item = new HashMap<>();
+                item.put("date", line.getString(0));
+                item.put("open", toBigDecimal(line.getString(1)));
+                item.put("close", toBigDecimal(line.getString(2)));
+                item.put("high", toBigDecimal(line.getString(3)));
+                item.put("low", toBigDecimal(line.getString(4)));
+                item.put("volume", toLong(line.getString(5)));
+                history.add(item);
+            }
+
+            return history;
+        } catch (Exception e) {
+            log.warn("获取历史K线失败，市场：{}，股票代码：{}，周期：{}，原因：{}", stockSymbol.market, stockSymbol.code, period, e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+
+    private StockSymbol normalizeStockSymbol(String symbol) {
+        if (symbol == null || symbol.trim().isEmpty()) {
+            return null;
+        }
+
+        String normalized = symbol.trim().toLowerCase(Locale.ROOT);
+        String market;
+        String code;
+        if (normalized.startsWith("sh") || normalized.startsWith("sz")) {
+            market = normalized.substring(0, 2);
+            code = normalized.substring(2);
+        } else {
+            code = normalized;
+            market = code.startsWith("5") || code.startsWith("6") || code.startsWith("9") ? "sh" : "sz";
+        }
+
+        if (code.isEmpty()) {
+            return null;
+        }
+
+        return new StockSymbol(market, code);
+    }
+
+    private String normalizePeriod(String period) {
+        String normalized = period == null ? "D" : period.trim().toUpperCase(Locale.ROOT);
+        if (!"W".equals(normalized) && !"M".equals(normalized)) {
+            return "D";
+        }
+        return normalized;
+    }
+
+    private String toTencentKlineType(String period) {
+        if ("W".equals(period)) {
+            return "week";
+        }
+        if ("M".equals(period)) {
+            return "month";
+        }
+        return "day";
+    }
+
+    private int toSinaScale(String period) {
+        if ("W".equals(period)) {
+            return 1200;
+        }
+        if ("M".equals(period)) {
+            return 7200;
+        }
+        return 240;
+    }
+
+    private String extractJsonArray(String response) {
+        int start = response.indexOf('[');
+        int end = response.lastIndexOf(']');
+        if (start < 0 || end <= start) {
+            return null;
+        }
+        return response.substring(start, end + 1);
+    }
+
+    private static class StockSymbol {
+        private final String market;
+        private final String code;
+
+        private StockSymbol(String market, String code) {
+            this.market = market;
+            this.code = code;
+        }
     }
 
     /**

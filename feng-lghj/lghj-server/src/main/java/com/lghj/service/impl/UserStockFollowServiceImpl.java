@@ -167,7 +167,7 @@ public class UserStockFollowServiceImpl extends ServiceImpl<UserStockFollowMappe
                 if (quote != null) {
                     vo.setPrice((BigDecimal) quote.get("price"));
                     vo.setChangePercent((BigDecimal) quote.get("changePercent"));
-                    vo.setVolume((Long) quote.get("volume"));
+                    vo.setVolume(toLongValue(quote.get("volume")));
                 }
             } else {
                 // 数据库查不到基础信息的情况（理论不应发生）
@@ -190,5 +190,20 @@ public class UserStockFollowServiceImpl extends ServiceImpl<UserStockFollowMappe
         if (marketType == null) return "sh"; // 默认
         if (marketType == 1 || marketType == 4) return "sh";
         return "sz";
+    }
+
+    private Long toLongValue(Object value) {
+        if (value == null) {
+            return 0L;
+        }
+        if (value instanceof Number) {
+            return ((Number) value).longValue();
+        }
+        try {
+            return Long.parseLong(value.toString());
+        } catch (NumberFormatException e) {
+            log.warn("自选股成交量转换失败，value={}", value);
+            return 0L;
+        }
     }
 }

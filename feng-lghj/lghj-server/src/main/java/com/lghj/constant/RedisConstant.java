@@ -29,6 +29,10 @@ public class RedisConstant {
      */
     public static final String STOCK_REAL_TIME_KEY = "stock:realtime:";
     /**
+     * 股票历史K线数据缓存Key前缀
+     */
+    public static final String STOCK_HISTORY_KEY = "stock:history:v2:";
+    /**
      * 用户自选股Key前缀：user:stock:follow:{userId}
      */
     public static final String REDIS_FOLLOW_PREFIX = "user:stock:follow:";

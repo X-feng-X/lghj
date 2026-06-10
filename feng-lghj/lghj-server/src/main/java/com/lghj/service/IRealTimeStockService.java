@@ -26,6 +26,15 @@ public interface IRealTimeStockService {
     List<Map<String, Object>> getMinuteData(String market, String code);
 
     /**
+     * 获取股票历史K线数据
+     *
+     * @param symbol 股票代码，支持 sh000001、sz399001、600519 等格式
+     * @param period 周期：D(日K)、W(周K)、M(月K)
+     * @return 历史K线数据列表
+     */
+    List<Map<String, Object>> getStockHistory(String symbol, String period);
+
+    /**
      * 从Redis获取缓存的分时数据
      *
      * @param market 市场代码
