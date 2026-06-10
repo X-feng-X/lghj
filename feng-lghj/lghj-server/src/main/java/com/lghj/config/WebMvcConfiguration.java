@@ -41,6 +41,7 @@ public class WebMvcConfiguration extends WebMvcConfigurationSupport {
                 .addPathPatterns("/api/user/**")
                 .excludePathPatterns("/api/login")
                 .excludePathPatterns("/api/user/blog/comments/list") // 查询博客评论列表（带二级评论，树形结构）
+                .excludePathPatterns("/api/user/realtime/quote") // 获取股票实时行情
                 .excludePathPatterns("/api/user/realtime/news") // 获取股票实时资讯
                 .excludePathPatterns("/api/user/realtime/minute") // 获取股票分时数据
                 .excludePathPatterns("/api/user/blog/query/hot") // 根据点赞数量（热度）展示博客

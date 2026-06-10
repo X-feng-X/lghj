@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
 import { Icon } from "@iconify/react";
 import {
   api,
@@ -7,35 +7,35 @@ import {
   BlogDTO,
   LoginVO,
   PositionDTO,
+  RealtimeQuoteDTO,
   SimAccountDTO,
+  StockDocDTO,
   StockFollowDTO,
+  StockNewsDTO,
   TradeDealDTO,
   TradeOrderDTO,
 } from "./api";
 import { Sparkline } from "./components/Sparkline";
-import {
-  advisorChat,
-  advisorMessage,
-  advisorTasks,
-  communityPosts,
-  deals as mockDeals,
-  marketIndexes,
-  marketNews,
-  orders as mockOrders,
-  positions as mockPositions,
-  tickerItems,
-  watchlist,
-} from "./data/mock";
+import { tickerItems } from "./data/mock";
 
 type Page = "home" | "market" | "advisor" | "optional" | "community" | "news" | "trade" | "auth";
 type Notice = { type: "success" | "error" | "info"; text: string };
 type OrderRow = { left: string; meta: string; middle: string; right: string; id?: number; canCancel?: boolean };
+type ChatMessage = { role: "user" | "assistant"; text: string };
 
 const protectedPages = new Set<Page>(["advisor", "optional", "community", "news", "trade"]);
+const defaultStocks = [
+  { market: "sh", code: "600519", label: "贵州茅台" },
+  { market: "sz", code: "000001", label: "平安银行" },
+  { market: "sh", code: "601318", label: "中国平安" },
+];
+
 const icon = (name: string) => <Icon icon={name} aria-hidden="true" />;
 const toNumber = (value: unknown, fallback = 0) => Number(value ?? fallback) || fallback;
-const formatMoney = (value: number) =>
-  new Intl.NumberFormat("zh-CN", { style: "currency", currency: "CNY", maximumFractionDigits: 0 }).format(value || 0);
+const formatMoney = (value: number, digits = 0) =>
+  new Intl.NumberFormat("zh-CN", { style: "currency", currency: "CNY", maximumFractionDigits: digits }).format(value || 0);
+const formatPercent = (value?: number) => `${toNumber(value).toFixed(2)}%`;
+const inferMarket = (code: string) => (/^(5|6|9)/.test(code.trim()) ? "sh" : "sz");
 
 const getStoredUser = (): LoginVO | null => {
   const raw = localStorage.getItem("lghj_user");
@@ -100,7 +100,7 @@ export default function App() {
       {page === "market" && <MarketPage onNavigate={openPage} />}
       {page === "advisor" && <AdvisorPage onNavigate={openPage} user={user} />}
       {page === "optional" && <OptionalPage onNavigate={openPage} />}
-      {page === "community" && <CommunityPage onNavigate={openPage} user={user} />}
+      {page === "community" && <CommunityPage user={user} />}
       {page === "news" && <NewsPage onNavigate={openPage} />}
       {page === "trade" && <TradePage onNavigate={openPage} />}
       {page === "auth" && <AuthPage hint={loginHint} onLogin={handleLogin} />}
@@ -109,15 +109,23 @@ export default function App() {
 }
 
 function Topbar({ page, user, onNavigate, onLogout }: { page: Page; user: LoginVO | null; onNavigate: (page: Page) => void; onLogout: () => void }) {
+  const [menuOpen, setMenuOpen] = useState(false);
   const navItems: Array<{ page: Page; label: string; protected?: boolean }> = [
     { page: "home", label: "首页" },
     { page: "market", label: "行情中心" },
-    { page: "advisor", label: "智能预测", protected: true },
+    { page: "advisor", label: "AI 顾问", protected: true },
     { page: "optional", label: "自选股", protected: true },
     { page: "community", label: "股友社区", protected: true },
     { page: "news", label: "财经资讯", protected: true },
     { page: "trade", label: "模拟交易", protected: true },
   ];
+
+  const confirmLogout = () => {
+    if (window.confirm("确认退出登录？")) {
+      setMenuOpen(false);
+      onLogout();
+    }
+  };
 
   return (
     <header className="topbar">
@@ -134,17 +142,109 @@ function Topbar({ page, user, onNavigate, onLogout }: { page: Page; user: LoginV
         ))}
       </nav>
       <div className="top-actions">
-        <div className="search-box">{icon("solar:magnifer-bold")}<input placeholder="搜索股票/代码" /></div>
+        <StockSearchBox className="top-search" placeholder="搜索股票/代码" onSelect={(stock) => onNavigate("market")} />
         {user ? (
-          <button className="user-chip" type="button" onClick={onLogout}>
-            {icon("solar:user-circle-bold-duotone")}
-            {user.username}
-          </button>
+          <div className="user-menu">
+            <button className="user-chip" type="button" onClick={() => setMenuOpen((value) => !value)}>
+              {icon("solar:user-circle-bold-duotone")}
+              {user.username}
+              {icon("solar:alt-arrow-down-linear")}
+            </button>
+            {menuOpen && (
+              <div className="user-popover">
+                <span>已登录</span>
+                <b>{user.username}</b>
+                <button type="button" onClick={confirmLogout}>退出登录</button>
+              </div>
+            )}
+          </div>
         ) : (
           <button className="login-chip" type="button" onClick={() => onNavigate("auth")}>登录</button>
         )}
       </div>
     </header>
+  );
+}
+
+function StockSearchBox({
+  value,
+  placeholder = "输入股票/代码",
+  className = "",
+  onInput,
+  onSelect,
+}: {
+  value?: string;
+  placeholder?: string;
+  className?: string;
+  onInput?: (value: string) => void;
+  onSelect?: (stock: StockDocDTO) => void;
+}) {
+  const [keyword, setKeyword] = useState(value || "");
+  const [results, setResults] = useState<StockDocDTO[]>([]);
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (value !== undefined) setKeyword(value);
+  }, [value]);
+
+  useEffect(() => {
+    const text = keyword.trim();
+    if (text.length < 2) {
+      setResults([]);
+      return;
+    }
+    const timer = window.setTimeout(async () => {
+      setLoading(true);
+      try {
+        const next = await api.searchStocks(text);
+        setResults((next || []).slice(0, 8));
+        setOpen(true);
+      } catch {
+        setResults([]);
+      } finally {
+        setLoading(false);
+      }
+    }, 220);
+    return () => window.clearTimeout(timer);
+  }, [keyword]);
+
+  const choose = (stock: StockDocDTO) => {
+    setKeyword(stock.symbol);
+    setOpen(false);
+    onInput?.(stock.symbol);
+    onSelect?.(stock);
+  };
+
+  return (
+    <div className={`stock-search ${className}`}>
+      <div className="search-box">
+        {icon("solar:magnifer-bold")}
+        <input
+          value={keyword}
+          placeholder={placeholder}
+          onBlur={() => window.setTimeout(() => setOpen(false), 140)}
+          onChange={(event) => {
+            setKeyword(event.target.value);
+            onInput?.(event.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+        />
+      </div>
+      {open && (loading || results.length > 0) && (
+        <div className="stock-dropdown">
+          {loading && <span className="dropdown-empty">搜索中</span>}
+          {!loading && results.map((stock) => (
+            <button type="button" key={`${stock.symbol}-${stock.id || ""}`} onMouseDown={() => choose(stock)}>
+              <strong>{stock.symbol}</strong>
+              <span>{stock.name || "未命名"}</span>
+              <em>{stock.industry || stock.marketType || "股票"}</em>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -163,43 +263,93 @@ function Ticker() {
 }
 
 function HomePage({ onNavigate }: { onNavigate: (page: Page) => void }) {
+  const [quotes, setQuotes] = useState<RealtimeQuoteDTO[]>([]);
+  const [selected, setSelected] = useState(defaultStocks[0]);
+  const [minutePoints, setMinutePoints] = useState<number[]>([]);
+  const [news, setNews] = useState<StockNewsDTO[]>([]);
+  const [notice, setNotice] = useState<Notice>({ type: "info", text: "正在读取真实行情。" });
+
+  const loadMarket = async (market: string, code: string) => {
+    try {
+      const [quote, minute, nextNews] = await Promise.all([
+        api.getRealtimeQuote({ market, code }),
+        api.getMinuteData({ market, code }).catch(() => []),
+        api.getStockNews(code, 6).catch(() => []),
+      ]);
+      setSelected({ market, code, label: quote?.name || code });
+      if (quote) {
+        setQuotes((current) => {
+          const rest = current.filter((item) => item.code !== quote.code);
+          return [quote, ...rest].slice(0, 6);
+        });
+      }
+      setMinutePoints(toSparkPoints(minute));
+      setNews(nextNews || []);
+      setNotice({ type: "success", text: `${quote?.name || code} 行情已更新。` });
+      return quote;
+    } catch (error) {
+      setNotice({ type: "error", text: getErrorText(error) });
+      return null;
+    }
+  };
+
+  useEffect(() => {
+    Promise.all(defaultStocks.map((stock) => api.getRealtimeQuote({ market: stock.market, code: stock.code }).catch(() => null)))
+      .then((items) => setQuotes(items.filter(Boolean) as RealtimeQuoteDTO[]));
+    loadMarket(defaultStocks[0].market, defaultStocks[0].code);
+  }, []);
+
+  const chartPoints = minutePoints.length > 2 ? minutePoints : [22, 30, 25, 38, 34, 48, 39, 42, 36, 54, 49, 60, 58];
+  const activeQuote = quotes.find((item) => item.code === selected.code) || quotes[0];
+
   return (
     <div className="screen-grid">
       <section className="index-strip">
-        {marketIndexes.slice(0, 3).map((item, index) => (
+        {quotes.length === 0 && <EmptyCard text="真实行情加载中。" />}
+        {quotes.map((item) => (
           <article className="glass-card index-tile" key={item.code}>
-            <span>{item.name}</span>
-            <strong>{["3,350.12", "10,580.33", "2,120.66"][index]}</strong>
-            <em className={item.trend}>{item.change}</em>
+            <span>{item.name || item.code}</span>
+            <strong>{formatMoney(toNumber(item.price), 2)}</strong>
+            <em className={toNumber(item.changePercent) >= 0 ? "up" : "down"}>{formatPercent(item.changePercent)}</em>
           </article>
         ))}
       </section>
 
       <section className="glass-card chart-panel">
-        <PanelHeader title="上证指数" action="日K" />
+        <PanelHeader title={activeQuote?.name || selected.label} action="看资讯" onAction={() => onNavigate("news")} />
+        <NoticeBar notice={notice} />
+        <div className="inline-form home-query">
+          <StockSearchBox
+            value={selected.code}
+            onInput={(value) => setSelected({ ...selected, code: value })}
+            onSelect={(stock) => loadMarket(inferMarket(stock.symbol), stock.symbol)}
+          />
+          <button type="button" onClick={() => loadMarket(inferMarket(selected.code), selected.code)}>查询</button>
+        </div>
         <div className="chart-stage">
-          <Sparkline points={[22, 30, 25, 38, 34, 48, 39, 42, 36, 54, 49, 60, 58]} color="#53d4ff" />
+          <Sparkline points={chartPoints} color="#53d4ff" />
           <div className="candle-grid">
-            {Array.from({ length: 46 }).map((_, index) => <i key={index} style={{ height: `${18 + ((index * 17) % 76)}%` }} />)}
+            {chartPoints.concat(chartPoints).slice(0, 46).map((point, index) => <i key={index} style={{ height: `${18 + (point % 76)}%` }} />)}
           </div>
           <div className="chart-tip">
-            <b>2026-06-10</b>
-            <span>open 3350.12</span>
-            <span>MA20 3376.40</span>
+            <b>{selected.code}</b>
+            <span>最新 {formatMoney(toNumber(activeQuote?.price), 2)}</span>
+            <span>涨跌 {formatPercent(activeQuote?.changePercent)}</span>
           </div>
         </div>
       </section>
 
       <aside className="side-stack">
         <section className="glass-card">
-          <PanelHeader title="自选股" action="更多" />
-          {watchlist.slice(0, 4).map((stock) => (
-            <DataLine key={stock.symbol} title={stock.name} meta={stock.symbol} value={stock.change} tone={stock.change.startsWith("+") ? "up" : "down"} />
+          <PanelHeader title="真实行情" action="交易" onAction={() => onNavigate("trade")} />
+          {quotes.map((stock) => (
+            <DataLine key={stock.code} title={stock.name || stock.code} meta={stock.code} value={formatPercent(stock.changePercent)} tone={toNumber(stock.changePercent) >= 0 ? "up" : "down"} />
           ))}
         </section>
         <section className="glass-card">
-          <PanelHeader title="最新资讯" action="更多" />
-          {marketNews.slice(0, 6).map((news) => <NewsLine key={news} title={news} />)}
+          <PanelHeader title="最新资讯" action="更多" onAction={() => onNavigate("news")} />
+          {news.length === 0 && <p className="empty-text">暂无资讯。</p>}
+          {news.map((item) => <NewsLine key={`${item.title}-${item.publishTime || ""}`} title={item.title} />)}
         </section>
         <button className="advisor-launch" type="button" onClick={() => onNavigate("advisor")}>
           {icon("solar:chat-round-like-bold-duotone")}
@@ -212,26 +362,65 @@ function HomePage({ onNavigate }: { onNavigate: (page: Page) => void }) {
 
 function MarketPage({ onNavigate }: { onNavigate: (page: Page) => void }) {
   return (
-    <PageFrame title="行情中心" subtitle="别盯一只票发呆。先看市场温度。">
+    <PageFrame title="行情中心" subtitle="查一只票。看真实数据。">
       <section className="market-layout">
         <div className="glass-card chart-panel big">
-          <PanelHeader title="京东方 A（000725）" action="周K" />
-          <div className="chart-stage tall">
-            <Sparkline points={[18, 24, 21, 32, 29, 48, 36, 39, 31, 46, 42, 58, 51, 64]} color="#53d4ff" />
-            <div className="candle-grid">
-              {Array.from({ length: 64 }).map((_, index) => <i key={index} style={{ height: `${14 + ((index * 13) % 78)}%` }} />)}
-            </div>
-          </div>
+          <PanelHeader title="行情工作台" action="去交易" onAction={() => onNavigate("trade")} />
+          <HomeMarketPanel />
         </div>
         <aside className="side-stack">
           <section className="glass-card">
-            <PanelHeader title="板块热度" />
-            {["算力 +2.8%", "白酒 -0.4%", "半导体 +1.3%", "新能源 +0.7%"].map((item) => <DataLine key={item} title={item} meta="实时热度" value="追踪" tone="up" />)}
+            <PanelHeader title="下一步" />
+            {["输入股票代码", "读取真实行情", "看新闻和分时", "再决定买卖"].map((item) => <DataLine key={item} title={item} meta="流程" value="可用" tone="up" />)}
           </section>
           <button className="advisor-launch" type="button" onClick={() => onNavigate("advisor")}>让 AI 解读行情</button>
         </aside>
       </section>
     </PageFrame>
+  );
+}
+
+function HomeMarketPanel() {
+  const [code, setCode] = useState("600519");
+  const [quote, setQuote] = useState<RealtimeQuoteDTO | null>(null);
+  const [points, setPoints] = useState<number[]>([]);
+  const [notice, setNotice] = useState<Notice>({ type: "info", text: "输入股票，读取后端真实行情。" });
+
+  const search = async (nextCode = code) => {
+    try {
+      const market = inferMarket(nextCode);
+      const [nextQuote, minute] = await Promise.all([
+        api.getRealtimeQuote({ market, code: nextCode }),
+        api.getMinuteData({ market, code: nextCode }).catch(() => []),
+      ]);
+      setQuote(nextQuote);
+      setPoints(toSparkPoints(minute));
+      setNotice({ type: "success", text: `${nextQuote?.name || nextCode} 已更新。` });
+    } catch (error) {
+      setNotice({ type: "error", text: getErrorText(error) });
+    }
+  };
+
+  useEffect(() => {
+    search("600519");
+  }, []);
+
+  return (
+    <>
+      <NoticeBar notice={notice} />
+      <div className="inline-form home-query">
+        <StockSearchBox value={code} onInput={setCode} onSelect={(stock) => search(stock.symbol)} />
+        <button type="button" onClick={() => search()}>搜索</button>
+      </div>
+      <MetricTriplet values={[
+        ["最新价", formatMoney(toNumber(quote?.price), 2)],
+        ["涨跌额", formatMoney(toNumber(quote?.change), 2)],
+        ["涨跌幅", formatPercent(quote?.changePercent)],
+      ]} />
+      <div className="chart-stage tall">
+        <Sparkline points={points.length > 2 ? points : [18, 24, 21, 32, 29, 48, 36, 39, 31, 46, 42, 58, 51, 64]} color="#53d4ff" />
+      </div>
+    </>
   );
 }
 
@@ -272,8 +461,8 @@ function AuthPage({ hint, onLogin }: { hint: string; onLogin: (user: LoginVO) =>
         <div className="login-logo">{icon("solar:chart-square-bold-duotone")}<span>Stock Prediction</span></div>
         <h1>股市预测系统</h1>
         <p>先登录。再交易。</p>
-        <p>没有 token，就别硬闯。</p>
-        <div className="red-module">智能决策系统<span>支持全生命周期风险决策</span></div>
+        <p>没 token，就别硬闯。</p>
+        <div className="red-module">智能决策系统<span>支持模拟交易和 AI 顾问</span></div>
       </div>
       <form className="login-card" onSubmit={submit}>
         <h2>{mode === "login" ? "登录 Stock Prediction" : "注册 Stock Prediction"}</h2>
@@ -302,9 +491,9 @@ function TradePage({ onNavigate }: { onNavigate: (page: Page) => void }) {
   const [positionList, setPositionList] = useState<PositionDTO[]>([]);
   const [orderList, setOrderList] = useState<TradeOrderDTO[]>([]);
   const [dealList, setDealList] = useState<TradeDealDTO[]>([]);
-  const [notice, setNotice] = useState<Notice>({ type: "info", text: "这里会连接后端模拟交易接口。" });
+  const [notice, setNotice] = useState<Notice>({ type: "info", text: "这里连接后端模拟交易接口。" });
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({ symbol: "600519", direction: "1", price: "1485.3", quantity: "100" });
+  const [form, setForm] = useState({ symbol: "600519", direction: "1", price: "1485.30", quantity: "100" });
 
   const refreshTrade = async () => {
     setLoading(true);
@@ -327,9 +516,9 @@ function TradePage({ onNavigate }: { onNavigate: (page: Page) => void }) {
   }, []);
 
   const summary = useMemo(() => ({
-    totalAsset: toNumber(accountInfo?.totalAsset, 200000),
-    availableCash: toNumber(accountInfo?.availableCash, 38009),
-    frozenCash: toNumber(accountInfo?.frozenCash, 0),
+    totalAsset: toNumber(accountInfo?.totalAsset),
+    availableCash: toNumber(accountInfo?.availableCash),
+    frozenCash: toNumber(accountInfo?.frozenCash),
   }), [accountInfo]);
 
   const createAccount = async () => {
@@ -373,11 +562,14 @@ function TradePage({ onNavigate }: { onNavigate: (page: Page) => void }) {
     }
   };
 
-  const positions = positionList.length > 0 ? positionList : mockPositions.map((item) => ({ symbol: item.symbol, totalQuantity: item.quantity, costPrice: item.cost, profitLoss: 0 }));
-  const orders: OrderRow[] = orderList.length > 0
-    ? orderList.map((order) => ({ left: order.symbol, meta: directionLabel(order.direction), middle: `${order.quantity} 股`, right: orderStatus(order.status), id: order.id, canCancel: order.status === 1 || order.status === 2 }))
-    : mockOrders.map((order) => ({ left: order.name, meta: order.side, middle: order.symbol, right: order.status }));
-  const deals = dealList.length > 0 ? dealList : mockDeals.map((deal) => ({ symbol: deal.symbol, direction: deal.side === "卖出" ? 2 : 1, price: deal.price, quantity: 100, createTime: deal.time }));
+  const orders: OrderRow[] = orderList.map((order) => ({
+    left: order.symbol,
+    meta: directionLabel(order.direction),
+    middle: `${order.quantity} 股`,
+    right: orderStatus(order.status),
+    id: order.id,
+    canCancel: order.status === 1 || order.status === 2,
+  }));
 
   return (
     <PageFrame title="模拟交易" subtitle="开户、买入、卖出、撤单，都在这一屏。">
@@ -394,14 +586,15 @@ function TradePage({ onNavigate }: { onNavigate: (page: Page) => void }) {
             <button className={form.direction === "1" ? "active" : ""} type="button" onClick={() => setForm({ ...form, direction: "1" })}>买入</button>
             <button className={form.direction === "2" ? "active" : ""} type="button" onClick={() => setForm({ ...form, direction: "2" })}>卖出</button>
           </div>
-          <label>股票代码<input value={form.symbol} onChange={(event) => setForm({ ...form, symbol: event.target.value })} /></label>
+          <label>股票代码<StockSearchBox value={form.symbol} onInput={(symbol) => setForm({ ...form, symbol })} onSelect={(stock) => setForm({ ...form, symbol: stock.symbol })} /></label>
           <label>委托价格<input type="number" min="0" step="0.01" value={form.price} onChange={(event) => setForm({ ...form, price: event.target.value })} /></label>
-          <label>买入数量<input type="number" min="1" step="1" value={form.quantity} onChange={(event) => setForm({ ...form, quantity: event.target.value })} /></label>
+          <label>数量<input type="number" min="1" step="1" value={form.quantity} onChange={(event) => setForm({ ...form, quantity: event.target.value })} /></label>
           <button className="primary-btn" type="submit" disabled={loading}>{form.direction === "1" ? "买入" : "卖出"}</button>
         </form>
         <section className="glass-card table-card">
           <PanelHeader title="持仓" />
-          <Table headers={["代码", "持仓数量", "成本价", "盈亏"]} rows={positions.map((p) => [p.symbol, String(p.totalQuantity ?? 0), formatMoney(toNumber(p.costPrice)), formatMoney(toNumber(p.profitLoss))])} />
+          <Table headers={["代码", "持仓数量", "成本价", "盈亏"]} rows={positionList.map((p) => [p.symbol, String(p.totalQuantity ?? 0), formatMoney(toNumber(p.costPrice), 2), formatMoney(toNumber(p.profitLoss), 2)])} />
+          {positionList.length === 0 && <p className="empty-text">暂无持仓。</p>}
         </section>
       </section>
       <section className="glass-card table-card">
@@ -414,10 +607,12 @@ function TradePage({ onNavigate }: { onNavigate: (page: Page) => void }) {
             </div>
           ))}
         </div>
+        {orders.length === 0 && <p className="empty-text">暂无委托。</p>}
       </section>
       <section className="glass-card table-card">
         <PanelHeader title="当日成交" />
-        <Table headers={["时间", "代码", "方向", "成交价", "数量"]} rows={deals.map((d) => [d.createTime || "-", d.symbol, directionLabel(d.direction), formatMoney(toNumber(d.price)), String(d.quantity ?? "-")])} />
+        <Table headers={["时间", "代码", "方向", "成交价", "数量"]} rows={dealList.map((d) => [d.createTime || "-", d.symbol, directionLabel(d.direction), formatMoney(toNumber(d.price), 2), String(d.quantity ?? "-")])} />
+        {dealList.length === 0 && <p className="empty-text">暂无成交。</p>}
       </section>
       <button className="advisor-launch inline" type="button" onClick={() => onNavigate("advisor")}>让 AI 看一下风险</button>
     </PageFrame>
@@ -473,34 +668,33 @@ function OptionalPage({ onNavigate }: { onNavigate: (page: Page) => void }) {
     }
   };
 
-  const visibleWatchlist = optionalStocks.length > 0 ? optionalStocks : watchlist.map((stock) => ({ symbol: stock.symbol, name: stock.name, price: Number(stock.price.replace(/,/g, "")), changePercent: Number(stock.change.replace("%", "")) }));
-
   return (
-    <PageFrame title="我的自选股" subtitle="只放你真会看的票。别收藏一堆噪音。">
+    <PageFrame title="我的自选股" subtitle="只放你真会看的票。">
       <NoticeBar notice={notice} />
       <section className="glass-card table-card">
         <form className="inline-form" onSubmit={addOptional}>
-          <input value={symbol} onChange={(event) => setSymbol(event.target.value)} placeholder="输入股票代码" />
+          <StockSearchBox value={symbol} onInput={setSymbol} onSelect={(stock) => setSymbol(stock.symbol)} />
           <button type="submit" disabled={loading}>添加自选</button>
           <button type="button" onClick={refreshOptional} disabled={loading}>刷新</button>
         </form>
         <Table
           headers={["代码", "名称", "当前价", "涨跌幅", "操作"]}
-          rows={visibleWatchlist.map((stock) => [
+          rows={optionalStocks.map((stock) => [
             stock.symbol,
             stock.name || stock.symbol,
-            formatMoney(toNumber(stock.price)),
-            `${toNumber(stock.changePercent).toFixed(2)}%`,
+            formatMoney(toNumber(stock.price), 2),
+            formatPercent(stock.changePercent),
             <button className="link-btn" type="button" onClick={() => removeOptional(stock.symbol)} disabled={loading}>删除</button>,
           ])}
         />
+        {optionalStocks.length === 0 && <p className="empty-text">还没有自选股。</p>}
       </section>
       <button className="advisor-launch inline" type="button" onClick={() => onNavigate("advisor")}>预测自选股</button>
     </PageFrame>
   );
 }
 
-function CommunityPage({ user }: { onNavigate: (page: Page) => void; user: LoginVO | null }) {
+function CommunityPage({ user }: { user: LoginVO | null }) {
   const [blogs, setBlogs] = useState<BlogDTO[]>([]);
   const [comments, setComments] = useState<Record<number, BlogCommentDTO[]>>({});
   const [openBlogId, setOpenBlogId] = useState<number | null>(null);
@@ -532,8 +726,6 @@ function CommunityPage({ user }: { onNavigate: (page: Page) => void; user: Login
     refreshBlogs();
   }, []);
 
-  const visibleBlogs = blogs.length > 0 ? blogs : communityPosts.map((post, index) => ({ id: index + 1, userId: 1, title: post.title, context: post.context, liked: post.heat, comments: 0, name: post.author }));
-
   const submitBlog = async (event: FormEvent) => {
     event.preventDefault();
     setLoading(true);
@@ -562,10 +754,16 @@ function CommunityPage({ user }: { onNavigate: (page: Page) => void; user: Login
 
   const likeBlog = async (id?: number) => {
     if (!id) return;
+    const target = blogs.find((blog) => blog.id === id);
+    const wasLiked = Boolean(target?.isLike);
     try {
       await api.likeBlog(id);
-      setBlogs((current) => current.map((blog) => (blog.id === id ? { ...blog, liked: (blog.liked || 0) + 1, isLike: true } : blog)));
-      setNotice({ type: "success", text: "已点赞。" });
+      setBlogs((current) => current.map((blog) => {
+        if (blog.id !== id) return blog;
+        const liked = Math.max(0, (blog.liked || 0) + (wasLiked ? -1 : 1));
+        return { ...blog, liked, isLike: !wasLiked };
+      }));
+      setNotice({ type: "success", text: wasLiked ? "已取消点赞。" : "已点赞。" });
     } catch (error) {
       setNotice({ type: "error", text: getErrorText(error) });
     }
@@ -624,13 +822,14 @@ function CommunityPage({ user }: { onNavigate: (page: Page) => void; user: Login
         <form className="glass-card post-form" onSubmit={submitBlog}>
           <PanelHeader title="发布观点" />
           <input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} placeholder="标题" required />
-          <input value={form.stockId} onChange={(event) => setForm({ ...form, stockId: event.target.value })} placeholder="关联股票，可不填" />
+          <StockSearchBox value={form.stockId} placeholder="关联股票，可不填" onInput={(stockId) => setForm({ ...form, stockId })} onSelect={(stock) => setForm({ ...form, stockId: stock.symbol })} />
           <textarea value={form.context} onChange={(event) => setForm({ ...form, context: event.target.value })} placeholder="写清楚你的判断。" required />
           <button className="primary-btn" type="submit" disabled={loading}>发布观点</button>
         </form>
         <section className="glass-card post-list">
           <PanelHeader title="热门推荐" />
-          {visibleBlogs.map((post) => {
+          {blogs.length === 0 && <p className="empty-text">暂无帖子。</p>}
+          {blogs.map((post) => {
             const blogComments = post.id ? comments[post.id] || [] : [];
             return (
               <article className="post-card" key={post.id || post.title}>
@@ -638,7 +837,7 @@ function CommunityPage({ user }: { onNavigate: (page: Page) => void; user: Login
                 <p>{post.context}</p>
                 <small>{post.name || `用户 ${post.userId || ""}`}</small>
                 <div className="inline-actions">
-                  <button type="button" onClick={() => likeBlog(post.id)} disabled={!post.id}>{icon("solar:heart-bold-duotone")}{post.liked || 0}</button>
+                  <button className={post.isLike ? "liked" : ""} type="button" onClick={() => likeBlog(post.id)} disabled={!post.id}>{icon("solar:heart-bold-duotone")}{post.liked || 0}</button>
                   <button type="button" onClick={() => loadComments(post.id)} disabled={!post.id}>{icon("solar:chat-round-dots-bold-duotone")}评论</button>
                   <button type="button" onClick={() => followUser(post.userId)} disabled={!post.userId || user?.id === post.userId}>{post.userId && followedUsers[post.userId] ? "取消关注" : "关注"}</button>
                 </div>
@@ -668,13 +867,21 @@ function CommunityPage({ user }: { onNavigate: (page: Page) => void; user: Login
 }
 
 function AdvisorPage({ onNavigate, user }: { onNavigate: (page: Page) => void; user: LoginVO | null }) {
-  const [messages, setMessages] = useState(advisorChat);
-  const [question, setQuestion] = useState("600519 现在能买吗？");
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [question, setQuestion] = useState("");
   const [sessionId, setSessionId] = useState("");
   const [loading, setLoading] = useState(false);
-  const [notice, setNotice] = useState<Notice>({ type: "info", text: "AI 顾问会连接 8091，并可调用实时行情 MCP。" });
+  const [profile, setProfile] = useState<Array<{ label: string; value: string; level: number }>>([]);
+  const [notice, setNotice] = useState<Notice | null>(null);
   const advisorUserId = user?.id ? String(user.id) : "web-guest";
-  const casualQuestionPattern = /^(你好|您好|嗨|hi|hello|在吗|你是谁|你能做什么|能干嘛)[。！？?\s]*$/i;
+
+  useEffect(() => {
+    Promise.all([api.getAccount(), api.getPositions(), api.getOrders(), api.getDeals()])
+      .then(([account, positions, orders, deals]) => {
+        setProfile(buildTradeProfile(account, positions || [], orders || [], deals || []));
+      })
+      .catch((error) => setNotice({ type: "error", text: getErrorText(error) }));
+  }, []);
 
   const submitQuestion = async (event: FormEvent) => {
     event.preventDefault();
@@ -683,12 +890,6 @@ function AdvisorPage({ onNavigate, user }: { onNavigate: (page: Page) => void; u
     setMessages((current) => [...current, { role: "user", text }]);
     setQuestion("");
     setLoading(true);
-
-    if (casualQuestionPattern.test(text)) {
-      setMessages((current) => [...current, { role: "assistant", text: "你好，我在。你可以问我行情、持仓、交易复盘和风险。" }]);
-      setLoading(false);
-      return;
-    }
 
     try {
       let nextSessionId = sessionId;
@@ -704,23 +905,21 @@ function AdvisorPage({ onNavigate, user }: { onNavigate: (page: Page) => void; u
         message: text,
       });
       setMessages((current) => [...current, { role: "assistant", text: reply.content || "AI 服务返回了空内容。" }]);
-      setNotice({ type: "success", text: "AI 顾问已返回。" });
     } catch (error) {
-      const errorText = getErrorText(error);
-      setMessages((current) => [...current, { role: "assistant", text: `AI 服务错误：${errorText}` }]);
-      setNotice({ type: "error", text: errorText });
+      setMessages((current) => [...current, { role: "assistant", text: `AI 服务错误：${getErrorText(error)}` }]);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <PageFrame title="Agent 投资顾问" subtitle="先问数据。再问判断。别倒过来。">
-      <NoticeBar notice={notice} />
-      <section className="advisor-grid">
+    <PageFrame title="Agent 投资顾问" subtitle="先问数据。再问判断。">
+      {notice && <NoticeBar notice={notice} />}
+      <section className="advisor-grid compact">
         <aside className="glass-card profile-panel">
           <PanelHeader title="交易画像" />
-          {advisorTasks.map((task) => (
+          {profile.length === 0 && <p className="empty-text">暂无真实交易画像。</p>}
+          {profile.map((task) => (
             <div className="profile-row" key={task.label}>
               <div><b>{task.label}</b><span>{task.value}</span></div>
               <div className="heat-bar"><i style={{ width: `${task.level}%` }} /></div>
@@ -730,8 +929,8 @@ function AdvisorPage({ onNavigate, user }: { onNavigate: (page: Page) => void; u
         </aside>
         <section className="glass-card chat-panel">
           <PanelHeader title="顾问对话" />
-          <div className="agent-orb">{icon("solar:chat-round-like-bold-duotone")}</div>
-          <div className="chat-stream">
+          <div className="chat-stream empty-ready">
+            {messages.length === 0 && <p className="empty-text">对话框已就绪。直接问。</p>}
             {messages.map((message, index) => (
               <div className={`chat-bubble ${message.role}`} key={`${message.role}-${index}`}>
                 <span>{message.role === "user" ? "你" : "AI 顾问"}</span>
@@ -744,30 +943,53 @@ function AdvisorPage({ onNavigate, user }: { onNavigate: (page: Page) => void; u
             <button type="submit" disabled={loading}>{loading ? "等待 AI" : "发送"}</button>
           </form>
         </section>
-        <aside className="glass-card action-panel">
-          <PanelHeader title="观察清单" />
-          {advisorMessage.suggestions.map((suggestion, index) => (
-            <div className="action-card" key={suggestion}><b>{index + 1}</b><p>{suggestion}</p></div>
-          ))}
-        </aside>
       </section>
     </PageFrame>
   );
 }
 
 function NewsPage({ onNavigate }: { onNavigate: (page: Page) => void }) {
+  const [symbol, setSymbol] = useState("600519");
+  const [news, setNews] = useState<StockNewsDTO[]>([]);
+  const [notice, setNotice] = useState<Notice>({ type: "info", text: "输入股票，读取真实资讯。" });
+  const [loading, setLoading] = useState(false);
+
+  const searchNews = async (nextSymbol = symbol) => {
+    setLoading(true);
+    try {
+      const list = await api.getStockNews(nextSymbol.trim(), 12);
+      setNews(list || []);
+      setNotice({ type: "success", text: `已加载 ${nextSymbol} 的资讯。` });
+    } catch (error) {
+      setNotice({ type: "error", text: getErrorText(error) });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    searchNews("600519");
+  }, []);
+
+  const openNews = (item: StockNewsDTO) => {
+    if (!item.url) return;
+    window.open(item.url, "_blank", "noopener,noreferrer");
+  };
+
   return (
     <PageFrame title="财经资讯" subtitle="新闻很多。先筛，再看。">
+      <NoticeBar notice={notice} />
       <section className="glass-card news-panel">
         <div className="inline-form">
-          <input defaultValue="600519" placeholder="输入股票/代码" />
-          <button type="button">搜索</button>
+          <StockSearchBox value={symbol} onInput={setSymbol} onSelect={(stock) => searchNews(stock.symbol)} />
+          <button type="button" onClick={() => searchNews()} disabled={loading}>搜索</button>
         </div>
-        {marketNews.concat(marketNews).slice(0, 10).map((news, index) => (
-          <button className="news-item" type="button" key={`${news}-${index}`}>
-            <strong>{news}</strong>
-            <span>证券时报</span>
-            {icon("solar:alt-arrow-right-linear")}
+        {news.length === 0 && <p className="empty-text">暂无资讯。</p>}
+        {news.map((item, index) => (
+          <button className="news-item" type="button" key={`${item.title}-${index}`} disabled={!item.url} onClick={() => openNews(item)}>
+            <strong>{item.title}</strong>
+            <span>{item.source || item.publishTime || "来源未知"}</span>
+            {item.url ? icon("solar:alt-arrow-right-linear") : icon("solar:lock-keyhole-minimalistic-linear")}
           </button>
         ))}
       </section>
@@ -776,7 +998,7 @@ function NewsPage({ onNavigate }: { onNavigate: (page: Page) => void }) {
   );
 }
 
-function PageFrame({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
+function PageFrame({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {
   return (
     <div className="page-frame">
       <section className="page-title">
@@ -808,7 +1030,7 @@ function MetricTriplet({ values }: { values: Array<[string, string]> }) {
   );
 }
 
-function Table({ headers, rows }: { headers: string[]; rows: Array<Array<React.ReactNode>> }) {
+function Table({ headers, rows }: { headers: string[]; rows: Array<Array<ReactNode>> }) {
   return (
     <div className="data-table" style={{ "--cols": headers.length } as React.CSSProperties}>
       {headers.map((header) => <b key={header}>{header}</b>)}
@@ -829,8 +1051,35 @@ function NoticeBar({ notice }: { notice: Notice }) {
   return <div className={`notice-bar ${notice.type}`}>{notice.text}</div>;
 }
 
+function EmptyCard({ text }: { text: string }) {
+  return <article className="glass-card index-tile empty-card"><span>{text}</span></article>;
+}
+
+function toSparkPoints(rows: Array<Record<string, unknown>>) {
+  return rows
+    .map((row) => toNumber(row.price ?? row.close ?? row.value ?? row.current))
+    .filter((value) => value > 0)
+    .slice(-80);
+}
+
+function buildTradeProfile(account: SimAccountDTO, positions: PositionDTO[], orders: TradeOrderDTO[], deals: TradeDealDTO[]) {
+  const totalAsset = toNumber(account?.totalAsset);
+  const positionCost = positions.reduce((sum, item) => sum + toNumber(item.costPrice) * toNumber(item.totalQuantity), 0);
+  const buyCount = orders.filter((item) => item.direction === 1).length;
+  const sellCount = orders.filter((item) => item.direction === 2).length;
+  const activeSymbols = new Set([...positions.map((item) => item.symbol), ...deals.map((item) => item.symbol)].filter(Boolean));
+
+  return [
+    { label: "持仓集中度", value: `${positions.length} 只股票`, level: Math.min(100, positions.length * 18) },
+    { label: "仓位占比", value: totalAsset ? `${((positionCost / totalAsset) * 100).toFixed(1)}%` : "暂无资产", level: totalAsset ? Math.min(100, (positionCost / totalAsset) * 100) : 0 },
+    { label: "交易活跃度", value: `${orders.length} 笔委托`, level: Math.min(100, orders.length * 12) },
+    { label: "买卖倾向", value: `买 ${buyCount} / 卖 ${sellCount}`, level: orders.length ? Math.round((buyCount / orders.length) * 100) : 0 },
+    { label: "覆盖标的", value: `${activeSymbols.size} 只`, level: Math.min(100, activeSymbols.size * 20) },
+  ];
+}
+
 function renderInlineMarkdown(text: string) {
-  const nodes: React.ReactNode[] = [];
+  const nodes: ReactNode[] = [];
   text.split(/(\*\*[^*]+\*\*)/g).forEach((part, index) => {
     if (!part) return;
     nodes.push(part.startsWith("**") && part.endsWith("**") ? <strong key={index}>{part.slice(2, -2)}</strong> : part);
@@ -839,7 +1088,7 @@ function renderInlineMarkdown(text: string) {
 }
 
 function MarkdownMessage({ text }: { text: string }) {
-  const blocks: React.ReactNode[] = [];
+  const blocks: ReactNode[] = [];
   let listItems: string[] = [];
   const flushList = () => {
     if (!listItems.length) return;

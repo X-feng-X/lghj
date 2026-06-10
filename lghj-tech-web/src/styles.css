@@ -118,6 +118,11 @@ button:disabled { cursor: not-allowed; opacity: .56; }
 }
 
 .top-actions { gap: 12px; }
+.stock-search {
+  position: relative;
+  min-width: 0;
+}
+.stock-search.top-search { width: 260px; }
 .search-box {
   gap: 8px;
   width: 260px;
@@ -128,6 +133,7 @@ button:disabled { cursor: not-allowed; opacity: .56; }
   color: var(--muted);
   background: rgba(255,255,255,.05);
 }
+.stock-search .search-box { width: 100%; }
 .search-box input {
   width: 100%;
   border: 0;
@@ -135,6 +141,36 @@ button:disabled { cursor: not-allowed; opacity: .56; }
   color: var(--text);
   background: transparent;
 }
+.stock-dropdown {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 50;
+  overflow: hidden;
+  border: 1px solid rgba(100,244,255,.24);
+  border-radius: 8px;
+  background: rgba(8, 18, 27, .96);
+  box-shadow: 0 22px 56px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.1);
+  backdrop-filter: blur(22px) saturate(1.3);
+}
+.stock-dropdown button {
+  display: grid;
+  grid-template-columns: 72px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  min-height: 42px;
+  padding: 0 12px;
+  color: var(--text);
+  background: transparent;
+  text-align: left;
+}
+.stock-dropdown button:hover { background: rgba(70,184,255,.16); }
+.stock-dropdown strong { color: var(--cyan); }
+.stock-dropdown span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stock-dropdown em, .dropdown-empty { color: var(--muted); font-style: normal; font-size: 12px; }
+.dropdown-empty { display: block; padding: 12px; }
 .user-chip, .login-chip {
   gap: 8px;
   min-height: 34px;
@@ -144,6 +180,28 @@ button:disabled { cursor: not-allowed; opacity: .56; }
   background: rgba(255,255,255,.06);
 }
 .login-chip { background: linear-gradient(135deg, var(--blue), var(--red)); }
+.user-menu { position: relative; }
+.user-popover {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  z-index: 60;
+  display: grid;
+  gap: 8px;
+  min-width: 180px;
+  padding: 14px;
+  border: 1px solid rgba(100,244,255,.24);
+  border-radius: 8px;
+  background: rgba(8, 18, 27, .96);
+  box-shadow: 0 22px 56px rgba(0,0,0,.42);
+}
+.user-popover span { color: var(--muted); font-size: 12px; }
+.user-popover button {
+  min-height: 34px;
+  border-radius: 4px;
+  color: #fff;
+  background: rgba(255,77,95,.32);
+}
 
 .ticker {
   position: relative;
@@ -353,6 +411,7 @@ button:disabled { cursor: not-allowed; opacity: .56; }
 .trade-grid { grid-template-columns: 360px minmax(0, 1fr); }
 .community-board { grid-template-columns: 360px minmax(0, 1fr); align-items: start; }
 .advisor-grid { grid-template-columns: 280px minmax(0, 1fr) 300px; align-items: start; }
+.advisor-grid.compact { grid-template-columns: 300px minmax(0, 1fr); }
 
 .account-strip, .table-card, .ticket-card, .post-form, .post-list, .chat-panel, .profile-panel, .action-panel, .news-panel {
   padding: 18px;
@@ -449,6 +508,11 @@ input:focus, textarea:focus, select:focus {
   gap: 10px;
   margin-bottom: 18px;
 }
+.inline-form.home-query {
+  grid-template-columns: minmax(220px, 360px) auto;
+  align-items: start;
+  margin: 16px 0 0;
+}
 .inline-form.compact { margin: 0; }
 .inline-form button, .inline-actions button, .comment-line button {
   min-height: 40px;
@@ -456,6 +520,11 @@ input:focus, textarea:focus, select:focus {
   border-radius: 4px;
   color: #fff;
   background: rgba(70,184,255,.26);
+}
+.inline-actions button.liked {
+  color: #fff;
+  background: rgba(255,77,95,.45);
+  box-shadow: 0 0 20px rgba(255,77,95,.2);
 }
 
 .post-card {
@@ -515,6 +584,10 @@ input:focus, textarea:focus, select:focus {
   box-shadow: 0 0 36px rgba(70,184,255,.3);
 }
 .chat-stream { display: grid; gap: 12px; flex: 1; align-content: start; }
+.chat-stream.empty-ready {
+  min-height: 430px;
+  align-content: start;
+}
 .chat-bubble {
   max-width: 84%;
   padding: 14px 16px;
@@ -580,6 +653,10 @@ input:focus, textarea:focus, select:focus {
   text-align: left;
 }
 .news-item span { color: var(--muted); }
+.news-item:disabled {
+  cursor: not-allowed;
+  opacity: .58;
+}
 
 .notice-bar {
   min-height: 42px;

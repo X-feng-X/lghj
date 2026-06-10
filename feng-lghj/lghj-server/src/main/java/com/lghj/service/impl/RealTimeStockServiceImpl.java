@@ -290,11 +290,25 @@ public class RealTimeStockServiceImpl implements IRealTimeStockService {
      */
     public Map<String, Object> getRealTimeQuote(String market, String code) {
 
-        String url = StockConstant.GETREALTIMEQUOTEURL + market + code;
+        String normalizedMarket = market == null ? "" : market.trim().toLowerCase();
+        String normalizedCode = code == null ? "" : code.trim();
+        String redisKey = RedisConstant.STOCK_REAL_TIME_KEY + normalizedMarket + normalizedCode;
+
+        try {
+            String cached = stringRedisTemplate.opsForValue().get(redisKey);
+            if (cached != null && !cached.isEmpty()) {
+                return JSON.parseObject(cached, Map.class);
+            }
+        } catch (Exception e) {
+            log.warn("读取实时行情缓存失败，key={}", redisKey, e);
+            stringRedisTemplate.delete(redisKey);
+        }
+
+        String url = StockConstant.GETREALTIMEQUOTEURL + normalizedMarket + normalizedCode;
         try {
             String response = HttpUtil.get(url);
             if (response == null || response.isEmpty()) {
-                log.warn("实时行情接口返回空，市场：{}，股票代码：{}", market, code);
+                log.warn("实时行情接口返回空，市场：{}，股票代码：{}", normalizedMarket, normalizedCode);
                 return null;
             }
 
@@ -302,13 +316,13 @@ public class RealTimeStockServiceImpl implements IRealTimeStockService {
             int start = response.indexOf('"');
             int end = response.lastIndexOf('"');
             if (start == -1 || end == -1 || end <= start) {
-                log.warn("实时行情数据格式错误，市场：{}，股票代码：{}", market, code);
+                log.warn("实时行情数据格式错误，市场：{}，股票代码：{}", normalizedMarket, normalizedCode);
                 return null;
             }
 
             String data = response.substring(start + 1, end);
             if (data.isEmpty()) {
-                log.warn("实时行情数据内容为空，市场：{}，股票代码：{}", market, code);
+                log.warn("实时行情数据内容为空，市场：{}，股票代码：{}", normalizedMarket, normalizedCode);
                 return null;
             }
 
@@ -316,7 +330,7 @@ public class RealTimeStockServiceImpl implements IRealTimeStockService {
             String[] fields = data.split("~", -1);
             // 确保字段数量足够（至少包含涨跌幅，索引32）
             if (fields.length < 33) {
-                log.warn("实时行情数据字段不足，市场：{}，股票代码：{}，实际字段数：{}", market, code, fields.length);
+                log.warn("实时行情数据字段不足，市场：{}，股票代码：{}，实际字段数：{}", normalizedMarket, normalizedCode, fields.length);
                 return null;
             }
 
@@ -331,9 +345,15 @@ public class RealTimeStockServiceImpl implements IRealTimeStockService {
             quote.put("change", toBigDecimal(safeGet(fields, 31, "0")));
             quote.put("changePercent", toBigDecimal(safeGet(fields, 32, "0")));
 
+            try {
+                stringRedisTemplate.opsForValue().set(redisKey, JSON.toJSONString(quote), EXPIRE_TIME, TimeUnit.HOURS);
+            } catch (Exception e) {
+                log.warn("写入实时行情缓存失败，key={}", redisKey, e);
+            }
+
             return quote;
         } catch (Exception e) {
-            log.error("获取实时行情失败，市场：{}，股票代码：{}", market, code, e);
+            log.error("获取实时行情失败，市场：{}，股票代码：{}", normalizedMarket, normalizedCode, e);
             return null;
         }
     }

@@ -105,6 +105,34 @@ export type StockFollowDTO = {
   volume?: number;
 };
 
+export type StockDocDTO = {
+  id?: number;
+  symbol: string;
+  name?: string;
+  industry?: string;
+  marketType?: string;
+};
+
+export type RealtimeQuoteDTO = {
+  code: string;
+  name?: string;
+  price?: number;
+  prevClose?: number;
+  open?: number;
+  volume?: number;
+  change?: number;
+  changePercent?: number;
+};
+
+export type StockNewsDTO = {
+  keyword?: string;
+  title: string;
+  content?: string;
+  publishTime?: string;
+  source?: string;
+  url?: string;
+};
+
 export type AgentResponse<T = unknown> = {
   code: string;
   info: string;
@@ -246,6 +274,13 @@ export const api = {
   getOptionalStocks: () => request<StockFollowDTO[]>("/api/user/optional/list"),
   addOptionalStock: (symbol: string) => request(`/api/user/optional/add?${params({ symbol })}`, { method: "POST" }),
   removeOptionalStock: (symbol: string) => request(`/api/user/optional/remove?${params({ symbol })}`, { method: "POST" }),
+  searchStocks: (keyword: string) => request<StockDocDTO[]>(`/api/user/stock/search?${params({ keyword })}`),
+  getRealtimeQuote: (payload: { market: string; code: string }) =>
+    request<RealtimeQuoteDTO>(`/api/user/realtime/quote?${params(payload)}`),
+  getMinuteData: (payload: { market: string; code: string }) =>
+    request<Array<Record<string, unknown>>>(`/api/user/realtime/minute?${params(payload)}`),
+  getStockNews: (symbol: string, recentN = 10) =>
+    request<StockNewsDTO[]>(`/api/user/realtime/news?${params({ symbol, recentN })}`),
   chatAdvisor: (payload: AdvisorChatPayload) =>
     requestAgent<AdvisorChatDTO>("/api/v1/chat", {
       method: "POST",

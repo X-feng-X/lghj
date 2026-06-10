@@ -21,6 +21,17 @@ public class RealTimeStockController {
 
     private final IRealTimeStockService realTimeStockService;
 
+    @GetMapping("/quote")
+    @ApiOperation("获取股票实时行情")
+    public Result getRealTimeQuote(
+            @RequestParam String market,
+            @RequestParam String code
+    ) {
+        log.info("获取股票实时行情: market={}, code={}", market, code);
+        Map<String, Object> data = realTimeStockService.getRealTimeQuote(market, code);
+        return Result.success(data);
+    }
+
     @GetMapping("/news")
     @ApiOperation("获取股票实时资讯")
     public Result getStockNews(
