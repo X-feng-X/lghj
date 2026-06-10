@@ -1,6 +1,0 @@
-node_modules/
-dist/
-.npm-cache/
-tsconfig.tsbuildinfo
-vite-dev*.log
-*.log

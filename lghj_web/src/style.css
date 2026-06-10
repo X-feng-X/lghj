@@ -1,0 +1,59 @@
+:root {
+    /* Tonghuashun Logic: Red Up, Green Down */
+    --el-color-primary: #D32F2F;
+    /* Red */
+    --el-color-success: #D32F2F;
+    /* Success usually implies good, in stock market Up is Good */
+    --el-color-danger: #2E7D32;
+    /* Danger usually implies bad, in stock market Down is Bad? Or maybe just use Green for Down */
+    /* However, semantic meanings might conflict. Let's stick to Primary=Red. */
+
+    --color-up: #D32F2F;
+    --color-down: #2E7D32;
+    --color-bg: #f5f7fa;
+    --color-text-primary: #303133;
+    --color-text-secondary: #606266;
+    --header-height: 60px;
+}
+
+body {
+    margin: 0;
+    background-color: var(--color-bg);
+    font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', '微软雅黑', Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.text-up {
+    color: var(--color-up);
+}
+
+.text-down {
+    color: var(--color-down);
+}
+
+.bg-up {
+    background-color: var(--color-up);
+    color: white;
+}
+
+.bg-down {
+    background-color: var(--color-down);
+    color: white;
+}
+
+/* Global Card Style */
+.el-card {
+    border-radius: 8px;
+    /* Slight rounded corners */
+    border: none;
+    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+    /* Subtle shadow */
+}
+
+/* Layout helpers */
+.flex-center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}

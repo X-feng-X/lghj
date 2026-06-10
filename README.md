@@ -1,70 +1,77 @@
 # 量股化金 AI 智能投资顾问系统
 
-量股化金是一套面向股票社区与模拟交易场景的 AI 投资顾问系统，目标是解决交易数据孤立、风控反馈滞后和投资建议缺乏个性化的问题。系统以 Spring Boot 交易后端为基础，结合标准化 Agent 脚手架，构建从模拟交易、订单撮合、交易画像到多智能体投资顾问的完整闭环。
+量股化金是一套面向股票行情、模拟交易、投资社区和 AI 投资顾问场景的全栈系统。系统以 Spring Boot 交易后端为核心，结合 Vue 前端和独立 Agent 服务，覆盖行情展示、自选股、资讯、模拟交易、订单撮合、交易画像和智能投资咨询等能力。
 
-项目采用前后端分离与 Agent 服务解耦架构，后端负责社区、行情检索、模拟交易、持仓管理、订单撮合与交易画像沉淀；Agent 服务基于 Supervisor / Hierarchical 编排模式，将投资咨询拆分为市场分析、技术分析、个人交易画像、风险评估、组合建议与合规提示等子任务，并通过本地 MCP 工具读取用户模拟交易画像，为用户生成更贴近自身交易行为的投资观察建议。
+> 本项目仅用于技术学习、课程实践与工程展示，不构成任何证券、基金或其他金融产品的投资建议。
 
-> 本项目仅用于技术学习与工程实践展示，不构成证券投资建议或收益承诺。
+## 系统截图
+
+![量股化金首页运行截图](docs/images/dashboard.png)
 
 ## 项目结构
 
 ```text
 .
-├── feng-lghj                  # 股票社区与模拟交易后端
-├── ai-agent-scaffoid-feng     # AI Agent 脚手架与投资顾问服务
-└── lghj-tech-web              # React 科技风前端体验页
+├── feng-lghj                  # 股票社区、行情、自选股、模拟交易和撮合后端
+├── ai-agent-scaffoid-feng     # AI Agent 脚手架与智能投资顾问服务
+├── lghj_web                   # Vue 3 + Element Plus 前端应用
+└── docs/images                # README 展示截图等文档资源
 ```
 
 ## 核心能力
 
-- **股票社区与模拟交易后端**：支持用户登录、社区内容、自选股、股票检索、模拟账户、委托下单、撮合成交、撤单、成交记录与持仓管理。
-- **交易撮合与一致性保障**：围绕订单校验、资金冻结、持仓变更、成交落库和订单状态流转设计撮合流程，并通过 Redis / Redisson 分布式锁保障并发交易场景下的数据一致性。
-- **交易画像分析**：聚合用户模拟账户、持仓、近期委托、近期成交、仓位集中度、买卖偏好和异常委托行为，形成可供 AI 投顾使用的个人交易画像。
-- **Supervisor 多智能体投顾**：基于 Google ADK 与脚手架策略链扩展 Supervisor 编排模式，协调市场分析、技术分析、风险评估、组合建议和合规提示等子 Agent。
-- **本地 MCP 工具接入**：将交易画像查询能力封装为脚手架 local MCP Server Tool，由 Agent 在需要个性化分析时调用，实现交易系统能力与智能体编排解耦。
-- **本地化部署适配**：后端升级到 JDK 17，移除外部预测服务与 Timescale 运行依赖，默认使用 MySQL、Redis、Elasticsearch 与 HTTP 接口完成本地启动。
+- 股票行情首页：展示三大指数、K 线图、自选股和最新资讯。
+- 历史行情服务：后端统一提供 `/api/user/stock/data`，支持日 K、周 K、月 K，并使用 Redis 缓存 24 小时。
+- 自选股管理：支持添加、删除、查看自选股，并展示实时价格、涨跌幅和成交量。
+- 最新资讯：按指数或股票代码查询资讯，指数代码会自动映射为资讯关键词。
+- 模拟交易：支持开户、委托下单、撤单、成交记录、持仓和资金管理。
+- 订单撮合：通过 Redis / Redisson 保障并发交易场景下的数据一致性。
+- Agent 智能投资顾问：支持会话侧边栏、历史会话找回、删除会话、Markdown 渲染和后端 Agent 对接。
+- 交易画像分析：为 Agent 提供用户模拟交易上下文，用于个性化投资观察和风险提示。
 
 ## 技术栈
 
 | 模块 | 技术 |
 | --- | --- |
-| 交易后端 | Spring Boot 2.7.12, MyBatis-Plus, MySQL, Redis, Redisson, Elasticsearch |
+| 后端服务 | Spring Boot 2.7.12, MyBatis-Plus, MySQL, Redis, Redisson, Elasticsearch |
 | Agent 服务 | Spring Boot, Google ADK, Spring AI, MCP, Supervisor / Hierarchical Workflow |
-| 前端体验页 | Vite, React, TypeScript, lucide-react |
-| 工程环境 | JDK 17, Maven, Node.js |
+| 前端应用 | Vue 3, Vite, Element Plus, Pinia, Axios, ECharts |
+| 工程环境 | JDK 17+, Maven 3.8+, Node.js 18+ |
 
 ## 架构概览
 
 ```mermaid
 flowchart LR
     User["用户"]
-    Web["lghj-tech-web<br/>前端体验页"]
-    Trade["feng-lghj<br/>社区与模拟交易后端"]
-    Agent["ai-agent-scaffoid-feng<br/>投资顾问 Agent 服务"]
-    Supervisor["InvestmentAdvisorSupervisor"]
+    Web["lghj_web<br/>Vue 前端"]
+    Backend["feng-lghj<br/>交易与行情后端"]
+    Agent["ai-agent-scaffoid-feng<br/>智能投资顾问服务"]
+    Redis["Redis 缓存"]
+    DB["MySQL / Elasticsearch"]
     MCP["Local MCP<br/>交易画像工具"]
-    DB["MySQL / Redis / Elasticsearch"]
 
     User --> Web
-    Web --> Trade
+    Web --> Backend
     Web --> Agent
-    Trade --> DB
-    Agent --> Supervisor
-    Supervisor --> MCP
-    MCP --> Trade
+    Backend --> Redis
+    Backend --> DB
+    Agent --> MCP
+    MCP --> Backend
 ```
-
-## Agent 投资顾问流程
-
-1. 用户通过 Agent 服务发起投资咨询或交易复盘问题。
-2. `InvestmentAdvisorSupervisor` 判断问题类型并调度子 Agent。
-3. 当问题涉及“我的持仓、模拟交易、交易记录、个性化建议、风险偏好”等内容时，优先调度个人交易画像 Agent。
-4. 个人交易画像 Agent 通过 local MCP 工具调用交易系统内部画像接口，获取当前用户的模拟交易上下文。
-5. Supervisor 聚合市场分析、技术分析、交易画像、风险评估、组合建议与合规提示，输出结构化中文答复。
 
 ## 关键接口
 
-### Agent 服务
+### 行情与资讯
+
+```text
+GET /api/user/stock/data?symbol=sh000001&period=D
+GET /api/user/realtime/news?symbol=sh000001&recentN=10
+GET /api/user/optional/list
+POST /api/user/optional/add?symbol=000001
+POST /api/user/optional/remove?symbol=000001
+```
+
+### Agent 智能投资顾问
 
 ```text
 GET  /api/v1/query_ai_agent_config_list
@@ -91,7 +98,7 @@ GET /api/internal/sim-trade/profile?userId={userId}
 
 ### 1. 环境准备
 
-- JDK 17
+- JDK 17+
 - Maven 3.8+
 - MySQL 8.x
 - Redis
@@ -102,16 +109,10 @@ GET /api/internal/sim-trade/profile?userId={userId}
 
 ```bash
 cd feng-lghj
-mvn -pl lghj-server -am test
+mvn -pl lghj-server spring-boot:run
 ```
 
-在 IDE 中启动：
-
-```text
-com.lghj.LiangGuHuaJinApplication
-```
-
-按本地环境修改：
+本地配置文件：
 
 ```text
 feng-lghj/lghj-server/src/main/resources/application-dev.yml
@@ -121,13 +122,7 @@ feng-lghj/lghj-server/src/main/resources/application-dev.yml
 
 ```bash
 cd ai-agent-scaffoid-feng
-mvn -pl ai-agent-scaffoid-feng-app -am test
-```
-
-在 IDE 中启动：
-
-```text
-cn.feng.Application
+mvn -pl ai-agent-scaffoid-feng-app spring-boot:run
 ```
 
 常用环境变量：
@@ -139,15 +134,15 @@ AI_AGENT_MODEL=deepseek-chat
 LGHJ_BASE_URL=http://127.0.0.1:8080
 ```
 
-### 4. 启动前端体验页
+### 4. 启动前端应用
 
 ```bash
-cd lghj-tech-web
+cd lghj_web
 npm install
 npm run dev -- --host 127.0.0.1
 ```
 
-默认访问：
+默认访问地址：
 
 ```text
 http://127.0.0.1:5173/
@@ -156,27 +151,24 @@ http://127.0.0.1:5173/
 ## 验证命令
 
 ```bash
-# 交易后端
+# 后端编译
 cd feng-lghj
-mvn -pl lghj-server -am test
+mvn -pl lghj-server -am compile
 
-# Agent 服务
-cd ai-agent-scaffoid-feng
-mvn -pl ai-agent-scaffoid-feng-app -am test
-
-# 前端体验页
-cd lghj-tech-web
+# 前端打包
+cd lghj_web
 npm run build
 ```
 
-## 项目亮点
+## 最近更新
 
-- 使用 Supervisor 多智能体编排拆分复杂投顾任务，降低单 Agent 提示词膨胀和职责混乱问题。
-- 通过 local MCP 将交易画像能力标准化封装，Agent 不直接耦合交易系统实现。
-- 基于模拟交易记录生成个人交易画像，使投顾建议从通用问答升级为行为驱动的个性化分析。
-- 对交易撮合、订单恢复和并发交易场景引入分布式锁，提升核心交易流程可靠性。
-- 将交易系统、Agent 服务和前端体验页拆分为独立模块，便于单独部署、演进与替换。
+- 将股票预测模块升级为 Agent 智能投资顾问，并接入后端 Agent 服务。
+- 智能顾问支持 Markdown 渲染、会话历史、本地会话找回和删除会话。
+- 首页历史行情统一接入 8080 后端，删除 8002 独立代理依赖。
+- 历史行情新增 Redis 24 小时缓存，并切换为可用行情源。
+- 修复首页自选股成交量类型转换异常。
+- 修复首页最新资讯空白问题，支持指数代码到资讯关键词的自动映射。
 
 ## 免责声明
 
-本项目中的行情、交易和投资顾问内容仅用于技术演示、学习交流与工程实践，不构成任何证券、基金或其他金融产品的投资建议。AI 输出存在不确定性，实际投资需自行判断并承担风险。
+本项目中的行情、交易和 AI 投资顾问内容仅用于技术演示、学习交流与工程实践。AI 输出存在不确定性，不构成任何投资建议或收益承诺，实际投资需自行判断并承担风险。
